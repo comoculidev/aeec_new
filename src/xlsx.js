@@ -73,14 +73,42 @@ function csv(headers, rows) {
   return Buffer.from(String.fromCharCode(0xFEFF) + [headers, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n', 'utf8');
 }
 
-// columns: [{ label, get(row) }]
-function sendExport(ctx, { name, columns, rows, format }) {
+// Readable names of the exported lists (titles of the PDF version).
+const TITLES = {
+  news: 'Xəbərlər', projects: 'Layihələr', services: 'Xidmətlər', team: 'Komanda', 'layihe-sorgulari': 'Layihə sorğuları', 'elaqe-sorgulari': 'Əlaqə sorğuları',
+  'audit-jurnali': 'Audit jurnalı', 'sened-reyestri': 'Sənəd reyestri', kontragentler: 'Kontragentlər', 'gelir-xerc': 'Gəlir və xərc jurnalı', kadrlar: 'Kadrlar', 'emek-haqqi': 'Əmək haqqı cədvəli',
+  'analitika-daily': 'Analitika — günlər üzrə', 'analitika-pages': 'Analitika — səhifələr', 'analitika-sessions': 'Analitika — sessiyalar',
+};
+const QUERY_LABEL = { q: 'axtarış', from: 'başlanğıc', to: 'son', status: 'status', category: 'kateqoriya', kind: 'növ', doc_type: 'sənəd növü', period: 'ay', response: 'cavab', pay: 'ödəniş', method: 'üsul', year: 'il' };
+// Filters of the list in words, for the subtitle of the PDF ("axtarış: «P-004», başlanğıc: 01.10.2026").
+function filterText(q) {
+  const out = [];
+  for (const [k, v] of Object.entries(q || {})) {
+    if (!v || ['format', 'inline', 'sort', 'page', 'per_page'].includes(k)) continue;
+    const val = /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v.slice(8, 10)}.${v.slice(5, 7)}.${v.slice(0, 4)}` : `«${String(v).slice(0, 60)}»`;
+    out.push(`${QUERY_LABEL[k] || k}: ${val}`);
+  }
+  return out.join(', ');
+}
+
+// columns: [{ label, get(row) }]; format: xlsx | csv | pdf. title: heading of the PDF (defaults to TITLES[name]).
+// pdfColumns: labels of the columns printed in the PDF when a list has more columns than an A4
+// page can show legibly (Excel and CSV always contain all columns).
+function sendExport(ctx, { name, columns, rows, format, title, pdfColumns }) {
+  if (format === 'pdf' && pdfColumns) columns = pdfColumns.map((l) => columns.find((c) => c.label === l)).filter(Boolean);
   const headers = columns.map((c) => c.label);
   const data = rows.map((r) => columns.map((c) => { const x = c.get(r); return x === undefined || x === null ? '' : x; }));
   const stamp = new Date().toISOString().slice(0, 10);
+  const file = `aeec-${name.replace(/[^a-z0-9-]/gi, '')}-${stamp}`;
+  if (format === 'pdf') {
+    const { tablePdf, sendPdf } = require('./pdf');
+    const f = filterText(ctx.query);
+    const heading = title || TITLES[name] || name;
+    return sendPdf(ctx, tablePdf({ title: heading, subtitle: `${data.length} qeyd${f ? ' · ' + f : ''}`, headers, rows: data }), `${file}.pdf`);
+  }
   const isX = format === 'xlsx';
   const buf = isX ? xlsx(headers, data, name) : csv(headers, data);
-  ctx.res.setHeader('Content-Disposition', `attachment; filename="aeec-${name.replace(/[^a-z0-9-]/gi, '')}-${stamp}.${isX ? 'xlsx' : 'csv'}"`);
+  ctx.res.setHeader('Content-Disposition', `attachment; filename="${file}.${isX ? 'xlsx' : 'csv'}"`);
   ctx.send(200, buf, isX ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
 }
 module.exports = { xlsx, csv, zip, sendExport };

@@ -1,6 +1,6 @@
 AEEC — SAYT VƏ İDARƏETMƏ PANELİ · BİR LAYİHƏ
 Azərbaycan Enerji Encinirinq ənd Konsaltinq MMC · https://aeec.az/
-19.10.2026 · sayt v3.3, panel 1.4  (proqramçı üçün: README.md və docs/TEXNIKI.md)
+20.10.2026 · sayt v3.3, panel 1.5 (proqramçı üçün: README.md və docs/TEXNIKI.md)
 ══════════════════════════════════════════════════════════════════════
 
 Bu qovluq bütöv bir layihədir: sayt da, idarəetmə paneli də, onların məlumatları da buradadır.
@@ -130,12 +130,22 @@ Ehtiyat nüsxə: Panel → Tənzimləmələr → Ehtiyat nüsxə (və ya data/ q
 - Şirkətin e-poçtu, telefonu, ünvanı: Panel → Tənzimləmələr → Əlaqə. Dəyişiklik bütün
   səhifələrə düşür; saytdan gələn sorğuların məktubları da bu e-poçta gedir (Tənzimləmələr →
   E-poçt bildirişləri siyahısı boşdursa).
-- Sənəd reyestri (Panel → OFİS → Sənəd reyestri): yeni sənəd → nömrə avtomatik verilir.
+- Sənəd reyestri (Panel → OFİS → Sənəd reyestri): yeni sənəd → nömrə avtomatik verilir
+  (məs. P-004/10-26). Skan faylının adı: P-004-10-26.pdf («/» əvəzinə «-»).
+  Alan şəxs: siyahıdan əməkdaşı seçin; yoxdursa «Yeni əməkdaş» — Kadrlara da əlavə olunur.
+  Skanları elə yeni sənəd formasında əlavə edə bilərsiniz; sonradan da kartda «Fayl əlavə et»,
+  «Əvəzlə». Toplu: «Skanları yüklə». Siyahıları dəyişmək: «Siyahılar» düyməsi.
   Köhnə Excel reyestrini köçürmək: «Excel-dən idxal» → faylı seçin → «Yoxla» → «İdxal et».
-  Skanlar: sənədin səhifəsində «Fayl əlavə et» və ya «Skanları yüklə» (fayl adı = nömrə,
-  «/» əvəzinə «_», məs. P-003_09-26.pdf). Siyahıları dəyişmək: «Siyahılar» düyməsi.
-- Mühasibatlıq: Kontragentlər, Gəlir və xərc (hesab üzrə ödənişdə sənəd nömrəsini yazın),
-  Kadrlar, Əmək haqqı (məbləğləri mühasib hesablayır, panel cəmləyir).
+- Mühasibatlıq: Kontragentlər, Gəlir və xərc (qəbzi qeydin kartına əlavə edin; eyni ödəniş
+  ikinci dəfə yazılanda sistem xəbərdarlıq edir; mühasib «Təsdiqlə» düyməsi ilə təsdiqləyir),
+  Kadrlar (şəxsi iş: foto, şəxsiyyət vəsiqəsi, təhsil, müqavilə, əmrlər),
+  Əmək haqqı (məbləğləri mühasib hesablayır, panel cəmləyir).
+- PDF: hər siyahıda «PDF» düyməsi; hesabatlar («İllik hesabat», «Qeydiyyat kartı», «Şəxsi iş»,
+  «Cədvəl») əvvəlcə önizləmə kimi açılır → oradan Çap və ya Endir.
+- WhatsApp düyməsi: Panel → Tənzimləmələr → Əlaqə → WhatsApp nömrəsini (+994 …) yazın →
+  Yadda saxla. Nömrə yazılmayana qədər saytda düymə görünmür.
+- Ofis bölmələrinə başqa işçiyə giriş: Panel → İstifadəçilər və rollar → rol yaradın və
+  lazımi icazələri seçin (məs. «Kadrlar: şəxsi məlumatlar», «Gəlir-xərc: təsdiq»).
 - Layihələr, Həllər, Haqqımızda səhifələrinin mətnləri hələ HTML fayllarıdır (site/ qovluğunda);
   paneldəki Layihələr / Xidmətlər / Komanda / Şirkət bölmələri onlara avtomatik düşmür.
 

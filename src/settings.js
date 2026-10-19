@@ -21,8 +21,11 @@ const GROUPS = {
   },
   // Shown on the website (src/site-layout.js): e-mail and phone on every page, address per language.
   contact: {
-    shape: { address: v.str({ max: 300 }), phone: v.phone(), email: v.email(), whatsapp: v.phone(), maps_url: v.url(), i18n: L({ address: v.str({ max: 300 }) }) },
-    defaults: { address: company.address.az, phone: company.phone, email: company.email, whatsapp: '', maps_url: company.mapsUrl,
+    // whatsapp: international number (+994 …); empty = no WhatsApp button on the site.
+    // whatsapp_message: text already typed in the chat when the visitor opens it (optional).
+    shape: { address: v.str({ max: 300 }), phone: v.phone(), email: v.email(), whatsapp: v.phone(), whatsapp_message: v.str({ max: 300 }), maps_url: v.url(),
+      i18n: L({ address: v.str({ max: 300 }), whatsapp_message: v.str({ max: 300 }) }) },
+    defaults: { address: company.address.az, phone: company.phone, email: company.email, whatsapp: company.whatsapp, whatsapp_message: '', maps_url: company.mapsUrl,
       i18n: { en: { address: company.address.en }, ru: { address: company.address.ru } } },
     public: true,
   },

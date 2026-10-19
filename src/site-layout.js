@@ -16,6 +16,7 @@
 //
 // While a page is being served (src/site-static.js) this module also applies the panel values
 // (Tənzimləmələr → Əlaqə / Sosial şəbəkələr), so they appear everywhere at once:
+//   - WhatsApp button: <!--@whatsapp--> on the Contact pages (number and greeting from the panel);
 //   - social links: footer of every page, <!--@social-row--> on the Contact pages, and the JSON-LD
 //     "sameAs": [] of the home and contact pages (filled in here; empty list removed);
 //   - e-mail, phone and address: every place where a page shows the default value from
@@ -32,6 +33,8 @@ const PARTIALS_DIR = path.join(__dirname, '..', 'site-templates', 'partials');
 // Visually hidden note after links that open a new window (accessibility), per language.
 const NEW_WINDOW = { az: ' (yeni pəncərədə açılır)', en: ' (opens in a new window)', ru: ' (откроется в новом окне)' };
 const SOCIAL_ROW_LABEL = { az: 'Sosial şəbəkələr', en: 'Social media', ru: 'Соцсети' };
+const WA_LABEL = { az: 'WhatsApp ilə yazın', en: 'Message us on WhatsApp', ru: 'Написать в WhatsApp' };
+const WA_TEXT = { az: 'Salam! AEEC saytından yazıram.', en: 'Hello! I am writing from the AEEC website.', ru: 'Здравствуйте! Пишу с сайта AEEC.' };
 
 const escHtml = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const unescHtml = (s) => String(s ?? '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
@@ -90,7 +93,14 @@ function siteData(getSetting) {
     const own = l === 'az' ? contact.address : i18n[l] && i18n[l].address;
     address[l] = own || (contact.address && contact.address !== company.address.az ? contact.address : company.address[l]);
   }
+  // WhatsApp: wa.me needs the number with its country code, digits only; a number that is not in
+  // international form (e.g. starts with 0) is not shown rather than leading to a wrong chat.
+  const waDigits = String(contact.whatsapp || '').replace(/\D/g, '');
+  const waMessage = {};
+  for (const l of LANGS) waMessage[l] = (l === 'az' ? contact.whatsapp_message : i18n[l] && i18n[l].whatsapp_message) || contact.whatsapp_message || WA_TEXT[l];
   return {
+    whatsapp: /^[1-9]\d{9,14}$/.test(waDigits) ? waDigits : '',
+    waMessage,
     email: contact.email || company.email,
     phone: contact.phone || company.phone,
     address,
@@ -116,6 +126,10 @@ function renderPage(html, data) {
   });
   // Contact page: a "Social media" row in the office details (only when there are links).
   out = out.replace(/<!--@social-row-->/g, () => (data.links.length ? `<dt>${SOCIAL_ROW_LABEL[lang]}</dt><dd class="social">${socialLinks(data, lang)}</dd>` : ''));
+  // Contact page: WhatsApp button (only when a number is set in the panel).
+  out = out.replace(/<!--@whatsapp-->/g, () => (data.whatsapp
+    ? `<p class="wa-row"><a class="btn btn-wa" href="https://wa.me/${data.whatsapp}?text=${encodeURIComponent(data.waMessage[lang])}" target="_blank" rel="noopener noreferrer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>${WA_LABEL[lang]}<span class="sr-only">${NEW_WINDOW[lang]}</span></a></p>`
+    : ''));
   // Structured data for search engines: the organisation's profiles.
   out = out.replace(/, "sameAs": \[[^\]]*\]/g, () => (data.links.length ? `, "sameAs": ${JSON.stringify(data.links.map((x) => x.url)).replace(/,/g, ', ')}` : ''));
   // Contact details: the defaults written in the pages -> current panel values.

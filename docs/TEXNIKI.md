@@ -1,6 +1,6 @@
 # AEEC — sayt, panel və API: texniki sənəd
 
-Versiya 1.4 (sayt v3.3) · proqramçı və sistem inzibatçısı üçün. Quraşdırma və gündəlik iş üçün qısa bələdçi: `README.md`.
+Versiya 1.5 (sayt v3.3) · proqramçı və sistem inzibatçısı üçün. Quraşdırma və gündəlik iş üçün qısa bələdçi: `README.md`.
 
 ## 1. Arxitektura
 
@@ -59,7 +59,15 @@ faylların bağlanması, CSP və digər başlıqlar, keş, gzip, 404 səhifəsi)
 | `src/backup.js`, `src/xlsx.js` | Ehtiyat nüsxə, Excel/CSV |
 | `src/routes/*.js` | API ünvanları (auth, public, content, files, requests, admin) |
 | `src/site-news.js` | Xəbərlərin saytın statik səhifələrinə çevrilməsi, ilk işə salınmada mövcud xəbərlərin idxalı |
-| `src/routes/office.js` | Ofis bölmələri (daxili): sənəd reyestri (nömrələmə, idxal, skanlar), kontragentlər, gəlir-xərc, kadrlar, əmək haqqı |
+| `src/routes/office.js` | Ofis bölmələri (daxili): ümumi `/api/office/meta` və aşağıdakı modulların qoşulması |
+| `src/office/common.js` | Ortaq köməkçilər: nömrə formatı və **fayl adı** (`P-004/10-26` ↔ `P-004-10-26`), məbləğ, ad/soyad/ata adı bölgüsü, siyahılar |
+| `src/office/registry.js` | Sənəd reyestri: nömrələmə, unikallıq, nömrə yoxlaması, Excel idxalı, toplu skan, illik hesabat |
+| `src/office/finance.js` | Kontragentlər, gəlir-xərc jurnalı (təkrar yoxlaması, təsdiq, tarixçə), maliyyə icmalı |
+| `src/office/hr.js` | Kadrlar (elektron şəxsi iş, 3×4 foto, şəxsi məlumatların icazə ilə gizlədilməsi), əmək haqqı |
+| `src/office/attachments.js` | Ofis faylları: yükləmə, kateqoriya, əvəzləmə, baxış/endirmə, silmə — hamısı icazə yoxlaması ilə |
+| `src/office/reports.js` | Çap üçün PDF hesabatlar (qeydiyyat kartı, hesablaşma aktı, məxaric/mədaxil qeydi, şəxsi iş vərəqəsi, əmək haqqı cədvəli, illik hesabatlar) |
+| `src/pdf.js` | Asılılıqsız PDF yaradıcısı: TrueType şriftin alt dəsti (Azərbaycan hərfləri), A4, cədvəllər (səhifədən-səhifəyə bölünmə, təkrarlanan başlıq, sözü bölməyən sütun eni), JPEG şəkil, imza yerləri, «Səhifə N / M» |
+| `assets/fonts/` | Liberation Sans (SIL OFL 1.1, lisenziya faylı yanındadır) — PDF-lər üçün |
 | `src/xlsx-read.js` | Asılılıqsız XLSX oxuyucu (zip + XML, formulların saxlanmış nəticəsi), ölçü limitləri ilə |
 | `src/site-static.js` | Saytın verilməsi və onun qaydaları (keçidlər, başlıqlar, keş, gzip, 404) |
 | `src/imagesize.js`, `src/proxycheck.js` | Şəkil ölçüsü; proxy/IP ayarının yoxlanması |
@@ -123,13 +131,19 @@ Saytın səhifələri statik HTML olaraq qalır, amma təkrarlanan hissələr bi
 | `seo_pages` | Səhifələrin SEO məlumatı | `og_image_media_id → media` |
 | `site_files` | Panelin saytda yaratdığı («idarə etdiyi») fayllar və heşləri | — |
 | `site_meta` | İdxal bayrağı, son generasiyanın nəticəsi | — |
-| `registry_docs` | Sənəd reyestri: `doc_no` unikal, `doc_index`+`doc_year`+`seq` nömrələmə üçün; məbləğlər qəpiklə | `counterparty_id → counterparties`, `employee_id → employees` (RESTRICT) |
-| `counterparties`, `employees` | Kontragentlər, əməkdaşlar | — |
-| `ledger` | Gəlir-xərc jurnalı (məbləğ > 0, qəpiklə) | `doc_id → registry_docs` (SET NULL), `counterparty_id` |
+| `registry_docs` | Sənəd reyestri: `doc_no` unikal (rəsmi nömrə `P-004/10-26`), `doc_index`+`doc_year`+`seq` nömrələmə üçün; məbləğlər qəpiklə | `counterparty_id → counterparties`, `employee_id → employees` (RESTRICT) |
+| `counterparties` | Kontragentlər | — |
+| `employees` | Əməkdaşlar / şəxsi iş: `last_name`, `first_name`, `father_name` (+ `full_name` = «Soyad Ad», siyahı və axtarış üçün), `birth_date`, `address`, `department`, `id_series`, `id_number`, `photo_media_id` | `photo_media_id → media` (gizli) |
+| `ledger` | Gəlir-xərc jurnalı (məbləğ > 0, qəpiklə); `status` `pending`/`approved`, `approved_by`, `approved_at` | `doc_id → registry_docs` (SET NULL), `counterparty_id`, `approved_by → users` |
 | `payroll` | Əmək haqqı (əməkdaş + ay unikal), `net` server tərəfindən hesablanır | `employee_id → employees` |
-| `office_files` | Sənəd/jurnal/əməkdaş faylları (gizli media) | `media_id → media` |
-| `registry_view`, `ledger_view`, `payroll_view` | Siyahılar üçün görünüşlər: ödənilmiş məbləğ, ödəniş və cavab vəziyyəti, fayl sayı | — |
+| `office_files` | Sənəd/jurnal/əməkdaş faylları (gizli media); `category` (scan, receipt, id_card, education …) | `media_id → media` |
+| `registry_view`, `ledger_view`, `payroll_view` | Siyahılar üçün görünüşlər: ödənilmiş məbləğ, ödəniş və cavab vəziyyəti, fayl sayı; `doc_key` = fayl adı forması (`P-004-10-26`), `employee_position`, `approved_by_name` | — |
 | `backups`, `outbox` | Nüsxələrin siyahısı, göndəriləcək məktublar | — |
+
+**Nömrə və fayl adı (v1.5).** Bazada yalnız rəsmi nömrə saxlanılır. Fayl adı ondan hesablanır:
+`fileKey('P-004/10-26') = 'P-004-10-26'` (`src/office/common.js`). İstifadəçinin yazdığı nömrə və
+yüklənən fayl adları `normalizeNo()` ilə rəsmi formaya gətirilir (`p-004-10-26`, `P-004_10-26`,
+`P-004 10-26 (1).pdf` → `P-004/10-26`), ona görə köhnə «_» adları da işləyir; dublikat → 422.
 
 Çoxdilli sahələr: əsas dəyər Azərbaycan dilindədir, tərcümələr `i18n` sütununda
 `{ "en": {…}, "ru": {…} }` kimi saxlanılır; boş tərcümə API-də AZ dəyəri ilə əvəz olunur.
@@ -137,8 +151,20 @@ Xəbərlərdə isə başlıq və ya tam mətn tərcüməsi yoxdursa, həmin dild
 `news.slug_en`, `news.slug_ru` — EN/RU səhifə ünvanları; `news.site_image` — saytdakı
 mövcud şəkil (`/assets/img/…`), `news.cover_alt` — şəklin alt mətni (tərcümələri `i18n`-də).
 
-Yeni miqrasiya əlavə etmək: `src/db.js` → `MIGRATIONS` massivinə yeni SQL sətri. Tətbiq
-işə düşəndə özü tətbiq edir (`PRAGMA user_version`).
+Yeni miqrasiya əlavə etmək: `src/db.js` → `MIGRATIONS` massivinə yeni SQL sətri (SQL ilə
+çətin olan məlumat addımı — `AFTER[n]` funksiyası, eyni tranzaksiyada). Tətbiq işə düşəndə özü
+tətbiq edir (`PRAGMA user_version`). Mövcud baza yenilənməzdən əvvəl onun tam nüsxəsi avtomatik
+`data/backups/aeec-pre-migration-v{köhnə versiya}-{vaxt}.sqlite` faylına yazılır (icazə 600) və
+jurnala çıxarılır. Miqrasiya xəta verərsə tranzaksiya geri qaytarılır, baza dəyişmir.
+
+**Geri qaytarma (1.5 → 1.4):** tətbiqi dayandırın; `data/aeec.sqlite`-ı (və `-wal`, `-shm`
+fayllarını) kənara köçürün; `aeec-pre-migration-v3-….sqlite` nüsxəsini `data/aeec.sqlite`
+adı ilə yerinə qoyun; 1.4 kodunu qaytarıb işə salın. Bu nüsxə yeniləmədən əvvəlki vəziyyətdir —
+yeniləmədən sonra daxil edilən məlumatlar onda olmur.
+
+**1.5 miqrasiyası (4):** əməkdaş adları bölünür («Məmmədov Elçin Rauf oğlu» → soyad, ad, ata adı
+«Rauf oğlu»; `full_name` «Məmmədov Elçin» olur); mövcud jurnal qeydləri «təsdiq gözləyir»
+vəziyyətinə düşür (əvvəl təsdiq anlayışı yox idi); sənəd nömrələri dəyişmir.
 
 ## 4. API icmalı
 
@@ -155,13 +181,13 @@ vəziyyəti dəyişən sorğularda `X-CSRF-Token` başlığı məcburidir (dəy�
 | Media / sənədlər | `GET/POST /media`, `GET/PUT/DELETE /media/:id`; `GET/POST /documents`, `GET/PUT/PATCH/DELETE /documents/:id`, `GET /documents/:id/download` |
 | İstifadəçilər | `GET/POST /users`, `PUT/DELETE /users/:id`, `POST /users/:id/{reset-password,reset-2fa,unlock}`; `GET /roles`, `PUT /roles/:id/permissions` |
 | Sistem | `GET /notifications`, `/notifications/summary`; `POST /notifications/read-all`, `/notifications/:id/read`; `GET /audit`, `/audit/export`; `GET /settings`, `/company`, `/system`; `PUT /settings/:group`; `POST /settings/test-email`; `/seo-pages` (CRUD); `GET/POST /backups`, `GET /backups/:id/download`, `DELETE /backups/:id` |
-| Ofis (daxili) | `/registry` (CRUD, `/summary`, `/next-number`, `/:id/details`, `/scans`, `/import`, `/export`); `/counterparties` (+ `/:id/details`); `/ledger` (+ `/totals`, `/:id/details`); `/employees` (+ `/:id/details`); `/payroll` (+ `/generate`, `/totals`); `/office/meta`; `/office/files/:type/:id` (yükləmə), `/office/files/:fid` (endirmə, silmə); `/finance/summary` |
+| Ofis (daxili) | `/registry` (CRUD, `/summary`, `/summary/pdf`, `/next-number`, `/check-number`, `/:id/details`, `/:id/pdf`, `/scans`, `/import`, `/export`); `/counterparties` (+ `/:id/details`, `/:id/pdf`); `/ledger` (+ `/totals`, `/similar`, `/:id/details`, `/:id/pdf`, `POST /:id/approve`); `/employees` (+ `/lookup`, `/:id/details`, `/:id/pdf`, `/:id/photo` GET/POST/DELETE); `/payroll` (+ `/generate`, `/totals`, `/sheet/pdf`); `/office/meta`; `/office/files/:type/:id` (yükləmə, `category`), `/office/files/:fid/replace` (əvəzləmə), `/office/files/:fid` (baxış `?inline=1`, endirmə, silmə); `/finance/summary` (+ `/pdf`) |
 | Saytın xəbər səhifələri | `GET /site/status`; `POST /site/publish` (əl ilə yeniləmə) |
 | Açıq (sayt üçün) | `POST /public/form` (saytın 3 forması; köhnə ünvan `POST /contact.php` eyni işi görür), `/public/collect`, `/public/project-request` (fayl əlavəsi ilə), `/public/contact`; `GET /public/news[/:slug]`, `/public/projects[/:slug]`, `/public/services`, `/public/team`, `/public/documents[/:id/download]`, `/public/settings`, `/public/seo` |
 
 Siyahı ünvanlarının ümumi parametrləri: `q` (axtarış — böyük/kiçik hərfə və diakritik
 işarələrə həssas deyil: «sirket» → «Şirkət»), `from`, `to` (tarix), status/kateqoriya filtrləri,
-`sort` (`-` ilə azalan), `page`, `per_page` (≤ 100). Eksport: `format=xlsx|csv`.
+`sort` (`-` ilə azalan), `page`, `per_page` (≤ 100). Eksport: `format=xlsx|csv|pdf` (PDF: `inline=1` — brauzerdə önizləmə; çox sütunlu siyahılarda PDF-ə əsas sütunlar düşür — `pdfColumns`).
 
 ## 5. Rollar
 
@@ -174,6 +200,8 @@ işarələrə həssas deyil: «sirket» → «Şirkət»), `from`, `to` (tarix),
 | Tənzimləmələr, SEO | tam | tam | — | — |
 | Rolların icazələri, audit jurnalı, ehtiyat nüsxə | **yalnız Super Admin** | — | — | — |
 | Ofis: reyestr, mühasibatlıq, kadrlar | tam | — (verilə bilər) | — | — |
+
+Ofis icazələri: `registry.view/edit/delete`; `finance.view/edit/approve/delete` (`approve` — jurnal qeydini təsdiqləmək); `hr.view/personal/edit/delete` (`hr.personal` olmadan əməkdaşın doğum tarixi, ünvanı, şəxsiyyət vəsiqəsi, fotosu və şəxsi iş sənədləri API-dən **ümumiyyətlə qaytarılmır**, faylları açılmır). Hamısı serverdə yoxlanılır; interfeysdə düymənin gizlədilməsi yalnız rahatlıq üçündür.
 
 Administrator, Editor və Viewer rollarının icazələrini Super Admin paneldən dəyişə bilər;
 son sətirdəki üç icazə heç bir halda başqa rola verilə bilmir. Super Admin hesablarını yalnız
@@ -197,7 +225,8 @@ Super Admin yarada, dəyişə və silə bilər; sistemdə ən azı bir aktiv Sup
 | Sayt faylları | Generator yalnız `site_files`-dakı faylları dəyişir/silir; panelin yaratmadığı mövcud fayla toxunmur; yazı atomikdir (müvəqqəti fayl + rename), yalnız `xeberler/`, `en/news/`, `ru/news/`, `assets/img/cms/` və `sitemap.xml`. Slug və şəkil yolları regex ilə məhdudlaşdırılıb. |
 | Audit | Kritik əməliyyatlar (giriş, yaratma, redaktə, silmə, status, rol, eksport, nüsxə) istifadəçi, modul, qeyd ID, vaxt, IP, əvvəlki/yeni dəyərlə yazılır; baza səviyyəsində dəyişdirilə və silinə bilmir; şifrə və açarlar jurnala düşmür. |
 | E-poçt | Başlıqlara sətir keçidi yeridilə bilmir; alıcı ünvanları ciddi yoxlanılır; STARTTLS/TLS məcburidir. |
-| Eksport | CSV-də `= + - @` ilə başlayan xanalar zərərsizləşdirilir; Excel-də xanalar düstur deyil, mətn kimi yazılır. |
+| Eksport | CSV-də `= + - @` ilə başlayan xanalar zərərsizləşdirilir; Excel-də xanalar düstur deyil, mətn kimi yazılır. PDF-lər real məlumatdan yaradılır (ekran şəkli deyil); `Cache-Control: no-store`, CSP `default-src 'none'`. |
+| Kadr və maliyyə faylları | Gizli media: açıq ünvan yoxdur, hər açılışda sessiya + modul icazəsi (kadr faylları üçün əlavə `hr.personal`) yoxlanılır; girişsiz sorğu 401. Yükləmədə uzantı + magic bytes + ölçü (`MAX_UPLOAD_MB`); şəkillər `sandbox` CSP ilə, PDF-lər brauzerin öz baxış alətində. Əvəzləmə, silmə audit jurnalına yazılır. |
 
 ## 7. Şəxsi məlumatlar
 
@@ -236,6 +265,7 @@ npm test
   keçidlərin koddakı yeganə mənbəyi, paneldən Instagram/e-poçt/telefon/ünvan dəyişikliyinin
   bütün səhifələrə düşməsi, təhlükəli keçidlərin rəddi, bildiriş məktubunun şirkət e-poçtuna
   getməsi, köhnə ünvanların 301 keçidləri, bütün səhifələrdə qırıq daxili keçid/fayl olmaması.
+- `test/office-v15.test.js` — 1.5 tələbləri: nömrə və fayl adı (axtarış, toplu skan, unikallıq, köhnə yazılışlar), alan şəxsin kadrlardan seçilməsi və təkrar əməkdaşın qarşısının alınması, «… oğlu/qızı» adların bölünməsi, bütün siyahıların A4 PDF-i (Azərbaycan hərfləri, çoxsəhifəli cədvəldə təkrarlanan başlıq və «Səhifə N / M», filtrin çapı, ölçü), jurnalda təkrar xəbərdarlığı/təsdiq/tarixçə/qalıq/dövriyyə və `finance.approve` olmadan 403, şəxsi iş (şəxsi məlumatlar yalnız `hr.personal` ilə, 3×4 foto, kateqoriyalar, PDF), WhatsApp düyməsi.
 - `test/office.test.js` — Excel idxalı (yoxlama/təsdiq, təkrar idxal, yanlış fayllar), nömrələmə (növ və il üzrə, əl ilə nömrənin unikallığı), cavab və ödəniş vəziyyəti, skanlar (toplu ad uyğunlaşdırması, saxta fayl, girişsiz endirmə), kontragent balansı, əmək haqqı hesabı, siyahılar, rol məhdudiyyəti, ixrac → idxal.
 - `test/site.test.js` — saytın real surəti ilə: ünvan sxemi və yönləndirmələr, açıq
   yönləndirmə cəhdləri, giriş/çıxış/səhv şifrə/sessiyanın bitməsi, saytın 3 forması və
@@ -249,6 +279,14 @@ layihənin müvəqqəti surətində işləyir, əsl `site/` və `data/`-ya toxun
 Bunlardan əlavə hazırlanma zamanı brauzerdə tam ssenari (giriş → hər bölmə → saytdan forma
 göndərişi → rol məhdudiyyəti) və iki müstəqil təhlükəsizlik yoxlaması aparılıb; tapılan
 problemlər düzəldilib və testlərə əlavə olunub.
+
+1.5 üçün əlavə olaraq: (1) **real yeniləmə sınağı** — 1.4 kodu ilə baza yaradılıb məlumat daxil
+edilib, sonra eyni `data/` üzərində 1.5 işə salınıb: nüsxə yaranıb (v3, icazə 600), bütün
+məlumatlar qalıb, adlar bölünüb, ikinci işə salınmada yeni nüsxə yaranmayıb; (2) **brauzerdə**
+(Chromium) yeni sənəd formasında əməkdaş əlavə etmə, nömrə ipucu, skanların sənədlə birlikdə
+yüklənməsi, endirmə adı, faylın əvəzlənməsi, PDF önizləmə, jurnalda təkrar dialoqu və təsdiq,
+foto kəsmə (600×800), kateqoriya ilə sənəd, girişsiz faylın 401-i, mobil ekranda üfüqi sürüşmə
+olmaması — 25 yoxlama; (3) PDF-lər `qpdf --check` və `pdftotext`/`pdftoppm` ilə gözlə yoxlanılıb.
 
 **Sınanmayanlar:** real Apache və Cloudflare (onların rolunu HTTPS sınaq proxy-si oynayıb),
 real SMTP serveri ilə STARTTLS, systemd xidməti, yüksək yük.

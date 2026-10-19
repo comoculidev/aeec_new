@@ -1,6 +1,6 @@
 # AEEC — korporativ sayt (aeec.az) və idarəetmə paneli
 
-Azərbaycan Enerji Encinirinq ənd Konsaltinq MMC · versiya 1.4 (sayt v3.3)
+Azərbaycan Enerji Encinirinq ənd Konsaltinq MMC · versiya 1.5 (sayt v3.3)
 
 Bir layihə, bir proses, bir port: sayt, admin panel və API eyni Node.js tətbiqidir.
 Xarici kitabxana yoxdur (yalnız Node-un daxili modulları), build mərhələsi yoxdur.
@@ -36,10 +36,10 @@ npm run create-admin   # şifrə itəndə yeni Super Admin / şifrə
 Lokalda `.env` lazım deyil. Canlı serverdə:
 
 ```bash
-cp .env .env && chmod 600 .env   # sonra dəyərləri doldurun
+cp .env.example .env && chmod 600 .env   # sonra dəyərləri doldurun
 ```
 
-`.env` hər dəyişəni izah edir. Əsasları:
+`.env.example` hər dəyişəni izah edir. Əsasları:
 
 | Dəyişən | Təyinat |
 |---|---|
@@ -50,7 +50,7 @@ cp .env .env && chmod 600 .env   # sonra dəyərləri doldurun
 | `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` | Yalnız ilk işə salınmada — ilk Super Admin |
 | `LOGIN_*`, `SESSION_*`, `PASSWORD_MIN_LENGTH`, `MAX_UPLOAD_MB` | Təhlükəsizlik limitləri |
 
-**Real şifrələr yalnız `.env`-də saxlanılır** (`.gitignore`-dadır); kodda və `.env`-də
+**Real şifrələr yalnız `.env`-də saxlanılır** (`.gitignore`-dadır); kodda və `.env.example`-də
 heç bir şifrə və ya açar yoxdur. Serverin daxili açarı (`data/secret.key`) ilk işə salınmada
 avtomatik yaradılır.
 
@@ -74,16 +74,28 @@ Paneldə **OFİS** qrupu — yalnız Super Admin görür (başqa rola «İstifad
 
 | Bölmə | Nə edir |
 |---|---|
-| **Sənəd reyestri** | Göndərilən sənədlərin qeydiyyatı. Nömrə avtomatik: `indeks-sıra/ay-il` (AE-001/09-26), sıra növ üzrə il boyu davam edir, yeni ildə 001-dən başlayır. Cavab izləmə («Gözlənilir (N gündür)»), məbləğ və ödəniş vəziyyəti, hər sənədə skan/əlavə fayllar, növlər və aylar üzrə hesabat, Excel ixracı. **Excel-dən idxal** (şirkətin `Sened_Reyestri.xlsx` faylı: əvvəl yoxlama, sonra təsdiq; mövcud nömrələr təkrarlanmır). **Skanları toplu yüklə**: fayl adı = nömrə, «/» əvəzinə «_» (`P-003_09-26.pdf`). |
-| **Kontragentlər** | Müştəri/təchizatçı kartı: VÖEN, bank rekvizitləri, əlaqə; bütün sənədləri, ödənişləri və borc qalığı |
-| **Gəlir və xərc** | Pul hərəkəti jurnalı (kateqoriya, üsul, ƏDV, qəbz faylı). Hesab nömrəsi yazılan ödəniş həmin sənədin ödəniş vəziyyətini yeniləyir. İllik icmal: aylar üzrə qrafik, debitor borclar, kateqoriyalar |
-| **Kadrlar** | Əməkdaşlar, onlara bağlı əmrlər (reyestrdəki «Əmr» növü), əmək haqqı tarixçəsi, şəxsi iş sənədləri |
-| **Əmək haqqı** | Aylıq cədvəl: hesablanmış, gəlir vergisi, DSMF, işsizlik və tibbi sığorta (işçi/işəgötürən), ödəniləcək məbləğ avtomatik. Məbləğləri mühasib daxil edir — panel vergi dərəcələrini özü hesablamır |
+| **Sənəd reyestri** | Göndərilən sənədlərin qeydiyyatı. Rəsmi nömrə avtomatik: `indeks-sıra/ay-il` (P-004/10-26), sıra növ üzrə il boyu davam edir, yeni ildə 001-dən başlayır; eyni nömrə ikinci dəfə qəbul edilmir. **Fayl adı** nömrədən alınır: «/» → «-» (`P-004-10-26.pdf`); axtarışda həm nömrə, həm fayl adı tapılır. **Alan şəxs** — Kadrlar bazasından seçilir (vəzifəsi ilə); yoxdursa «Yeni əməkdaş» düyməsi onu Kadrlar bazasına da əlavə edir (təkrar yaradılmır). Skanlar yeni sənəd yaradılarkən və sonradan əlavə olunur (PDF/JPG/PNG, bir neçə fayl), kartda baxış, endirmə, **əvəzləmə**. Cavab izləmə, məbləğ və ödəniş vəziyyəti, illik hesabat (PDF), qeydiyyat kartı (PDF), Excel/PDF ixracı. **Excel-dən idxal**. **Skanları toplu yüklə**: fayl adı = nömrə (`P-004-10-26.pdf`; köhnə `P-004_10-26.pdf` da qəbul olunur). |
+| **Kontragentlər** | Müştəri/təchizatçı kartı: VÖEN, bank rekvizitləri, əlaqə; bütün sənədləri, ödənişləri və borc qalığı; hesablaşma aktı (PDF) |
+| **Gəlir və xərc** | Pul hərəkəti jurnalı: tarix, məbləğ, kateqoriya, kontragent, ödəniş üsulu, təsvir, əlaqəli sənəd (müqavilə/hesab). Qəbz/qaimə skanları qeydin kartında. **Təkrar yoxlaması** (eyni növ, məbləğ və kontragent ±3 gün → xəbərdarlıq). **Təsdiq** (`finance.approve` icazəsi) və dəyişiklik tarixçəsi; təsdiqlənmiş qeydin məbləği dəyişəndə təsdiq ləğv olunur. İcmal: açılış qalığı, gəlir, xərc, dövriyyə, bağlanış qalığı aylar üzrə; PDF hesabat |
+| **Kadrlar** | **Elektron şəxsi iş**: soyad/ad/ata adı, doğum tarixi, telefon, ünvan, 3×4 foto (kəsmə ilə), şəxsiyyət vəsiqəsinin seriya/nömrəsi; vəzifə, şöbə, işə qəbul/çıxma, status; sənədlər kateqoriya üzrə (şəxsiyyət vəsiqəsi, təhsil, sertifikat, müqavilə, əmr, digər); əmrlər; şəxsi iş vərəqəsi (PDF). Şəxsi məlumatları və sənədləri yalnız `hr.personal` icazəsi olan görür |
+| **Əmək haqqı** | Aylıq cədvəl: hesablanmış, gəlir vergisi, DSMF, işsizlik və tibbi sığorta (işçi/işəgötürən), ödəniləcək məbləğ avtomatik; imza yerləri ilə PDF cədvəl. Məbləğləri mühasib daxil edir — panel vergi dərəcələrini özü hesablamır |
+
+**PDF.** Bütün siyahıların «PDF» düyməsi (Excel yanında) və çap üçün hesabatlar əvvəlcə brauzerdə
+önizləmə kimi açılır, oradan çap/endirmə olunur. A4, kənar boşluqları, hər səhifədə cədvəl
+başlığı, «Səhifə N / M», çap tarixi, Azərbaycan hərfləri (Liberation Sans şrifti faylın içində).
+Çox sütunlu siyahılarda PDF-də əsas sütunlar çap olunur, tam siyahı Excel faylındadır.
+
+**Fayllar** gizli saxlanılır: heç bir açıq ünvanı yoxdur, hər açılışda giriş və icazə yoxlanılır.
 
 Seçim siyahıları (sənəd növləri və indeksləri, statuslar, göndərilmə üsulları, nəticələr, icraçılar,
 gəlir/xərc kateqoriyaları) proqramçısız dəyişdirilir: **Sənəd reyestri → Siyahılar**.
 Pul məbləğləri bazada qəpiklə (tam ədəd) saxlanılır — cəmlər dəqiqdir.
-Kod: `src/routes/office.js`, `src/xlsx-read.js`, `admin/assets/pages-office.js`; testlər: `test/office.test.js`.
+Kod: `src/routes/office.js` + `src/office/*.js`, `src/pdf.js`, `src/xlsx-read.js`, `admin/assets/pages-office.js`;
+testlər: `test/office.test.js`, `test/office-v15.test.js`.
+
+**WhatsApp düyməsi** (Əlaqə səhifələri): nömrə Panel → Tənzimləmələr → Əlaqə → «WhatsApp»
+sahəsinə beynəlxalq formatda yazılır (+994 …), istəyə görə hazır mesaj mətni də. Nömrə boşdursa
+düymə göstərilmir. Nömrə hələ daxil edilməyib.
 
 ## 5. Qovluq quruluşu
 
@@ -94,7 +106,9 @@ src/
   company.js           şirkətin əlaqə və sosial məlumatlarının standartı
   site-layout.js       saytın header/footer komponentləri + panel dəyərlərinin tətbiqi
   site-static.js       saytın verilməsi (köhnə ünvanların 301-i, başlıqlar, keş, gzip, 404)
-  routes/office.js     ofis bölmələri: sənəd reyestri, kontragentlər, gəlir-xərc, kadrlar, əmək haqqı
+  routes/office.js     ofis bölmələri: ümumi məlumat (meta) + aşağıdakı modulların qoşulması
+  office/              registry.js, finance.js, hr.js, attachments.js (fayllar), reports.js (PDF hesabatlar), common.js
+  pdf.js               PDF yaradıcısı (A4, şrift, cədvəllər, səhifə nömrələri) — xarici asılılıq yoxdur
   xlsx-read.js         Excel (.xlsx) faylının oxunması (reyestr idxalı üçün)
   site-news.js         paneldəki xəbərlərdən saytın xəbər səhifələrinin yaradılması
   settings.js          panel tənzimləmələri (qruplar, yoxlama qaydaları)

@@ -413,8 +413,10 @@ async function settings(view, args) {
     simple('general', [{ title: 'Ümumi məlumat', fields: [{ name: 'company_name', label: 'Şirkətin adı', required: true, i18n: true, full: true, max: 200 }, { name: 'site_name', label: 'Saytın qısa adı', max: 120 }, { name: 'working_hours', label: 'İş saatları', i18n: true, max: 200, placeholder: 'B.e – Cümə, 09:00–18:00' }] },
       { title: 'Loqo və favicon', col: 'side', fields: [{ name: 'logo_media_id', label: 'Loqo', type: 'media', objKey: 'logo' }, { name: 'favicon_media_id', label: 'Favicon', type: 'media', objKey: 'favicon' }] }], { values: g, langs: LANGS });
   } else if (tab === 'elaqe') {
-    simple('contact', [{ title: 'Əlaqə məlumatları', sub: 'Saytın əlaqə bölməsində və footer-də göstərilir', fields: [{ name: 'address', label: 'Ünvan', i18n: true, full: true, max: 300 }, { name: 'phone', label: 'Telefon', type: 'tel', max: 40 }, { name: 'email', label: 'E-poçt', type: 'email', max: 254 },
-      { name: 'whatsapp', label: 'WhatsApp nömrəsi', type: 'tel', max: 40 }, { name: 'maps_url', label: 'Google Maps keçidi', type: 'url', full: true }] }], { langs: LANGS });
+    simple('contact', [{ title: 'Əlaqə məlumatları', sub: 'Saytın bütün səhifələrində (footer), Əlaqə səhifəsində və formaların ehtiyat rejimində göstərilir. Bildiriş məktubları da bu e-poçta gedir.', fields: [{ name: 'address', label: 'Ünvan', i18n: true, full: true, max: 300 }, { name: 'phone', label: 'Telefon', type: 'tel', max: 40 }, { name: 'email', label: 'E-poçt', type: 'email', max: 254 },
+      { name: 'whatsapp', label: 'WhatsApp nömrəsi', type: 'tel', max: 40, placeholder: '+994 50 123 45 67', help: 'Beynəlxalq formatda (+994 …). Yazılan kimi Əlaqə səhifəsində «WhatsApp ilə yazın» düyməsi görünür; boş = düymə yoxdur.' },
+      { name: 'whatsapp_message', label: 'WhatsApp üçün hazır mesaj', i18n: true, full: true, max: 300, placeholder: 'Salam! AEEC saytından yazıram.', help: 'Ziyarətçi düyməni basanda söhbətdə əvvəlcədən yazılmış olur (istəyə bağlı).' },
+      { name: 'maps_url', label: 'Google Maps keçidi', type: 'url', full: true }] }], { langs: LANGS });
   } else if (tab === 'sosial') {
     // Same list and domain rules as the server (src/company.js SOCIAL_NETWORKS, src/validate.js socialUrl).
     const NETS = [['linkedin', 'LinkedIn', 'https://www.linkedin.com/…'], ['facebook', 'Facebook', 'https://www.facebook.com/…'], ['instagram', 'Instagram', 'https://www.instagram.com/hesab-adi/'],

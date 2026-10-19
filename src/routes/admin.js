@@ -105,7 +105,7 @@ module.exports = (app) => {
       for (let i = 0; i < r.n; i++) { const d = analytics.addDays(r.from, i); rows.push({ day: d, ...(byDay.get(d) || { v: 0, s: 0, ret: 0, pv: 0 }) }); }
       columns = [{ label: 'Tarix', get: (x) => x.day }, { label: 'Unikal ziyarətçi', get: (x) => x.v }, { label: 'Sessiya', get: (x) => x.s }, { label: 'Təkrar ziyarət', get: (x) => x.ret }, { label: 'Səhifə baxışı', get: (x) => x.pv }];
     }
-    audit(ctx, { action: `Eksport (${ctx.query.format === 'xlsx' ? 'Excel' : 'CSV'})`, module: 'Analitika', summary: `${rows.length} sətir eksport edildi (${type}, ${r.from} – ${r.to})` });
+    audit(ctx, { action: `Eksport (${{ xlsx: 'Excel', pdf: 'PDF' }[ctx.query.format] || 'CSV'})`, module: 'Analitika', summary: `${rows.length} sətir eksport edildi (${type}, ${r.from} – ${r.to})` });
     sendExport(ctx, { name: `analitika-${type}`, format: ctx.query.format, rows, columns });
   });
 
@@ -253,8 +253,8 @@ module.exports = (app) => {
   });
   app.get('/api/audit/export', superOnly, (ctx) => {
     const r = listRows(auditDef, ctx.query, { all: true });
-    audit(ctx, { action: `Eksport (${ctx.query.format === 'xlsx' ? 'Excel' : 'CSV'})`, module: 'Audit jurnalı', summary: `${r.rows.length} sətir eksport edildi` });
-    sendExport(ctx, { name: 'audit-jurnali', format: ctx.query.format, rows: r.rows, columns: [
+    audit(ctx, { action: `Eksport (${{ xlsx: 'Excel', pdf: 'PDF' }[ctx.query.format] || 'CSV'})`, module: 'Audit jurnalı', summary: `${r.rows.length} sətir eksport edildi` });
+    sendExport(ctx, { name: 'audit-jurnali', format: ctx.query.format, rows: r.rows, pdfColumns: ['Tarix və saat', 'İstifadəçi', 'Əməliyyat', 'Modul', 'Qeyd ID', 'Təsvir', 'IP'], columns: [
       { label: 'Tarix və saat', get: (x) => localTime(x.created_at) }, { label: 'İstifadəçi', get: (x) => x.user_name }, { label: 'Əməliyyat', get: (x) => x.action }, { label: 'Modul', get: (x) => x.module },
       { label: 'Qeyd ID', get: (x) => x.record_id }, { label: 'Təsvir', get: (x) => x.summary }, { label: 'IP', get: (x) => x.ip }, { label: 'Əvvəlki dəyər', get: (x) => x.previous_value || '' }, { label: 'Yeni dəyər', get: (x) => x.new_value || '' },
     ] });

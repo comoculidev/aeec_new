@@ -244,6 +244,10 @@ h1,h2,h3{overflow-wrap:break-word}
 /* Contact page: social network links from the admin panel (src/site-layout.js) */
 .kv .social{display:flex;flex-wrap:wrap;gap:4px 16px}
 .kv .social a{text-decoration:underline;text-underline-offset:3px}
+/* Contact page: WhatsApp button (number from the admin panel; src/site-layout.js) */
+.wa-row{margin:4px 0 0}
+.btn-wa{background:#1F8F4E;color:#fff;border-color:#1F8F4E;gap:8px}
+.btn-wa:hover,.btn-wa:focus-visible{background:#18733E;border-color:#18733E;color:#fff}
 .copy{min-height:40px;font-family:var(--body);font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer;margin-left:8px}
 
 /* footer */

@@ -46,7 +46,7 @@
 | `site/assets/js/main.js` | E-poçt və telefon səhifənin footer-indən oxunur (ayrıca yazılmır) |
 | `site/assets/css/style.css` | Əlaqə səhifəsindəki sosial sətir üçün 2 qayda |
 | `site-templates/news-*.html` (6) | Header/footer → direktiv |
-| `.env`, `OXU-MENI.txt`, `docs/TEXNIKI.md`, `package.json` | Sənədlər, Google Workspace SMTP izahı, versiya 1.3.0, yeni test faylı |
+| `.env.example`, `OXU-MENI.txt`, `docs/TEXNIKI.md`, `package.json` | Sənədlər, Google Workspace SMTP izahı, versiya 1.3.0, yeni test faylı |
 | `test/site.test.js` | Xəbər səhifəsi yoxlaması fayl əvəzinə verilən səhifə üzərindən |
 
 **Silinmiş:** 30 ölü yönləndirmə faylı (`site/*.html`, `site/en/*.html`, `site/ru/*.html`) və
@@ -73,7 +73,7 @@
    profil, təsdiq dialoqları) avtomatik göz düyməsi alır; standart olaraq gizlidir, forma
    göndəriləndə yenidən gizlənir; ekran oxuyucu üçün `aria-pressed`/`aria-label`.
 5. **E-poçt:** sorğu bildirişləri standart olaraq office@aeec.az-a; göndərən ünvan Google
-   Workspace qaydasına uyğun; `.env`-də App password ilə addım-addım qurulum.
+   Workspace qaydasına uyğun; `.env.example`-də App password ilə addım-addım qurulum.
 
 ## 3. Təkrarlanan kodların mərkəzləşdirilməsi
 
@@ -96,7 +96,7 @@
   (bazada yalnız scrypt heşi). Unudulan şifrə üçün mövcud təhlükəsiz mexanizmlər saxlanılıb.
 - Səhifə keşi məzmundan hesablanan ETag ilə — panel dəyişikliyi köhnə keşdə «gizlənmir».
 - Komponent direktivlərinin atributları yalnız sayt daxili yollar ola bilər (başqa domen rədd).
-- Kodda və `.env`-də real şifrə və açar yoxdur (yoxlanıldı).
+- Kodda və `.env.example`-də real şifrə və açar yoxdur (yoxlanıldı).
 - XSS, CSRF, SQL injection, icazə yoxlamaları, fayl yükləmələri — mövcud qorumalar yoxlanıldı,
   zəiflik tapılmadı; mövcud testlər (CSRF, XSS, açıq yönləndirmə, fayl növü) keçir.
 

@@ -65,8 +65,8 @@ module.exports = (app) => {
   });
   app.get('/api/leads/export', can('leads.export'), (ctx) => {
     const r = listRows(leadDef, ctx.query, { all: true });
-    audit(ctx, { action: `Eksport (${ctx.query.format === 'xlsx' ? 'Excel' : 'CSV'})`, module: 'Layihə sorğuları', summary: `${r.rows.length} sətir eksport edildi` });
-    sendExport(ctx, { name: 'layihe-sorgulari', format: ctx.query.format, rows: r.rows, columns: [
+    audit(ctx, { action: `Eksport (${{ xlsx: 'Excel', pdf: 'PDF' }[ctx.query.format] || 'CSV'})`, module: 'Layihə sorğuları', summary: `${r.rows.length} sətir eksport edildi` });
+    sendExport(ctx, { name: 'layihe-sorgulari', format: ctx.query.format, rows: r.rows, pdfColumns: ['Tarix', 'Ad', 'Soyad', 'Şirkət', 'E-poçt', 'Telefon', 'İstiqamət', 'Təsvir', 'Status', 'Məsul şəxs'], columns: [
       { label: 'ID', get: (x) => x.id }, { label: 'Tarix', get: (x) => day(x.created_at) }, { label: 'Ad', get: (x) => x.first_name }, { label: 'Soyad', get: (x) => x.last_name },
       { label: 'Şirkət', get: (x) => x.company }, { label: 'Vəzifə', get: (x) => x.position }, { label: 'E-poçt', get: (x) => x.email }, { label: 'Telefon', get: (x) => x.phone },
       { label: 'Layihənin adı', get: (x) => x.project_name }, { label: 'İstiqamət', get: (x) => x.direction }, { label: 'Büdcə', get: (x) => x.budget }, { label: 'Təsvir', get: (x) => x.description },
@@ -163,8 +163,8 @@ module.exports = (app) => {
   });
   app.get('/api/contacts/export', can('contacts.export'), (ctx) => {
     const r = listRows(contactDef, ctx.query, { all: true });
-    audit(ctx, { action: `Eksport (${ctx.query.format === 'xlsx' ? 'Excel' : 'CSV'})`, module: 'Əlaqə sorğuları', summary: `${r.rows.length} sətir eksport edildi` });
-    sendExport(ctx, { name: 'elaqe-sorgulari', format: ctx.query.format, rows: r.rows, columns: [
+    audit(ctx, { action: `Eksport (${{ xlsx: 'Excel', pdf: 'PDF' }[ctx.query.format] || 'CSV'})`, module: 'Əlaqə sorğuları', summary: `${r.rows.length} sətir eksport edildi` });
+    sendExport(ctx, { name: 'elaqe-sorgulari', format: ctx.query.format, rows: r.rows, pdfColumns: ['Tarix', 'Ad', 'Şirkət', 'E-poçt', 'Telefon', 'Mövzu', 'Mesaj', 'Status'], columns: [
       { label: 'ID', get: (x) => x.id }, { label: 'Tarix', get: (x) => day(x.created_at) }, { label: 'Ad', get: (x) => x.name }, { label: 'Şirkət', get: (x) => x.company },
       { label: 'E-poçt', get: (x) => x.email }, { label: 'Telefon', get: (x) => x.phone }, { label: 'Mövzu', get: (x) => x.subject }, { label: 'Mesaj', get: (x) => x.message },
       { label: 'Status', get: (x) => CONTACT_STATUS[x.status] }, { label: 'Razılıq', get: (x) => (x.consent ? 'Bəli' : 'Xeyr') },

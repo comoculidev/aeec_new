@@ -19,8 +19,8 @@ const PERMISSIONS = [
   ['media.view', 'Media kitabxanası', 'Baxış'], ['media.upload', 'Media kitabxanası', 'Yükləmə'], ['media.edit', 'Media kitabxanası', 'Redaktə'], ['media.delete', 'Media kitabxanası', 'Silmə'],
   // Office modules (internal, not on the website): document register, accounting, staff.
   ['registry.view', 'Sənəd reyestri', 'Baxış'], ['registry.edit', 'Sənəd reyestri', 'Yaratma və redaktə (skanlar, idxal)'], ['registry.delete', 'Sənəd reyestri', 'Silmə'],
-  ['finance.view', 'Mühasibatlıq', 'Baxış (kontragentlər, gəlir-xərc)'], ['finance.edit', 'Mühasibatlıq', 'Yaratma və redaktə'], ['finance.delete', 'Mühasibatlıq', 'Silmə'],
-  ['hr.view', 'Kadrlar və əmək haqqı', 'Baxış'], ['hr.edit', 'Kadrlar və əmək haqqı', 'Yaratma və redaktə'], ['hr.delete', 'Kadrlar və əmək haqqı', 'Silmə'],
+  ['finance.view', 'Mühasibatlıq', 'Baxış (kontragentlər, gəlir-xərc)'], ['finance.edit', 'Mühasibatlıq', 'Yaratma və redaktə'], ['finance.approve', 'Mühasibatlıq', 'Əməliyyatların təsdiqi'], ['finance.delete', 'Mühasibatlıq', 'Silmə'],
+  ['hr.view', 'Kadrlar və əmək haqqı', 'Baxış'], ['hr.personal', 'Kadrlar və əmək haqqı', 'Şəxsi məlumatlar və sənədlər (vəsiqə, ünvan, foto)'], ['hr.edit', 'Kadrlar və əmək haqqı', 'Yaratma və redaktə'], ['hr.delete', 'Kadrlar və əmək haqqı', 'Silmə'],
   ['users.view', 'İstifadəçilər', 'Baxış'], ['users.manage', 'İstifadəçilər', 'İdarəetmə'],
   ['roles.manage', 'Rollar', 'İcazələrin idarəsi'],
   ['settings.view', 'Tənzimləmələr', 'Baxış'], ['settings.manage', 'Tənzimləmələr', 'Dəyişmə'],

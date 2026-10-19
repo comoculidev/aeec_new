@@ -271,14 +271,80 @@ CREATE VIEW ledger_view AS
 CREATE VIEW payroll_view AS
   SELECT p.*, e.full_name, e.position FROM payroll p JOIN employees e ON e.id = p.employee_id;
 `,
+  // 4: personal files of employees, file categories, approval of journal entries, file-safe
+  //    document numbers (P-004/10-26 -> P-004-10-26) and employees as recipients of any document.
+  `
+ALTER TABLE office_files ADD COLUMN category TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN last_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN first_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN father_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN birth_date TEXT;
+ALTER TABLE employees ADD COLUMN address TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN department TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN id_series TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN id_number TEXT NOT NULL DEFAULT '';
+ALTER TABLE employees ADD COLUMN photo_media_id INTEGER REFERENCES media(id) ON DELETE SET NULL;
+ALTER TABLE ledger ADD COLUMN status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved'));
+ALTER TABLE ledger ADD COLUMN approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE ledger ADD COLUMN approved_at TEXT;
+-- existing names "Soyad Ad" are split once; full_name stays the display name
+UPDATE employees SET last_name = CASE WHEN instr(trim(full_name), ' ') > 0 THEN substr(trim(full_name), 1, instr(trim(full_name), ' ') - 1) ELSE trim(full_name) END,
+  first_name = CASE WHEN instr(trim(full_name), ' ') > 0 THEN trim(substr(trim(full_name), instr(trim(full_name), ' ') + 1)) ELSE '' END
+  WHERE last_name = '';
+DROP VIEW registry_view;
+CREATE VIEW registry_view AS
+  SELECT d.*, replace(d.doc_no, '/', '-') AS doc_key, COALESCE(c.name, '') AS cp_name, COALESCE(e.full_name, '') AS employee_name, COALESCE(e.position, '') AS employee_position,
+    COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.doc_id = d.id), 0) AS paid,
+    (SELECT COUNT(*) FROM office_files f WHERE f.owner_type = 'doc' AND f.owner_id = d.id) AS files_count,
+    CASE WHEN d.amount <= 0 THEN 'none'
+         WHEN COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.doc_id = d.id), 0) >= d.amount THEN 'paid'
+         WHEN COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.doc_id = d.id), 0) > 0 THEN 'partial' ELSE 'unpaid' END AS pay_state,
+    CASE WHEN d.status = 'Ləğv edildi' THEN 'cancelled' WHEN d.response_required = 0 THEN 'none'
+         WHEN d.response_date IS NOT NULL THEN 'received' ELSE 'waiting' END AS response_state
+  FROM registry_docs d LEFT JOIN counterparties c ON c.id = d.counterparty_id LEFT JOIN employees e ON e.id = d.employee_id;
+DROP VIEW ledger_view;
+CREATE VIEW ledger_view AS
+  SELECT l.*, COALESCE(c.name, '') AS cp_name, COALESCE(d.doc_no, '') AS doc_no, COALESCE(u.name, '') AS approved_by_name,
+    (SELECT COUNT(*) FROM office_files f WHERE f.owner_type = 'ledger' AND f.owner_id = l.id) AS files_count
+  FROM ledger l LEFT JOIN counterparties c ON c.id = l.counterparty_id LEFT JOIN registry_docs d ON d.id = l.doc_id LEFT JOIN users u ON u.id = l.approved_by;
+`,
 ];
+
+// Before an existing database is changed, a full copy is written to data/backups/
+// (aeec-pre-migration-v<old>-<time>.sqlite). Returning to the previous version = stop the service,
+// put that file back as data/aeec.sqlite and start the previous version of the application.
+// Data steps that are easier in JavaScript than in SQL; they run inside the same transaction as
+// the migration with the same number (a failure rolls both back).
+const AFTER = {
+  // 4: "Məmmədov Elçin Rauf oğlu" -> last_name, first_name, father_name; full_name = "Soyad Ad".
+  4: () => {
+    const { splitName } = require('./office/common');
+    for (const e of db.prepare('SELECT id, full_name FROM employees').all()) {
+      const n = splitName(e.full_name);
+      if (!n.father_name) continue;
+      db.prepare('UPDATE employees SET last_name = ?, first_name = ?, father_name = ?, full_name = ? WHERE id = ?')
+        .run(n.last_name, n.first_name, n.father_name, `${n.last_name} ${n.first_name}`, e.id);
+    }
+  },
+};
 
 function migrate() {
   let v = get('PRAGMA user_version').user_version;
+  if (v > 0 && v < MIGRATIONS.length) {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    fs.mkdirSync(config.backupDir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+    const file = path.join(config.backupDir, `aeec-pre-migration-v${v}-${stamp}.sqlite`);
+    db.prepare('VACUUM INTO ?').run(file);
+    try { fs.chmodSync(file, 0o600); } catch { /* ignore */ }
+    console.log(`[db] Baza v${v} → v${MIGRATIONS.length} yenilənir. Əvvəlki vəziyyətin nüsxəsi: ${file}`);
+  }
   for (; v < MIGRATIONS.length; v++) {
     db.exec('BEGIN');
     try {
       db.exec(MIGRATIONS[v]);
+      if (AFTER[v + 1]) AFTER[v + 1]();
       db.exec(`PRAGMA user_version = ${v + 1}`);
       db.exec('COMMIT');
     } catch (e) {

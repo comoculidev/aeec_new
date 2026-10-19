@@ -26,6 +26,9 @@ const company = {
     ru: 'г. Хырдалан, улица Гасана Алиева, Азербайджан',
   },
   mapsUrl: 'https://maps.app.goo.gl/y3ChPxsBJ8R6JhLT9',
+  // WhatsApp number of the company in international form (+994 …). Not known yet: it is entered
+  // in the panel (Tənzimləmələr → Əlaqə); until then the site shows no WhatsApp button.
+  whatsapp: '',
   // Social networks. An empty value = not shown on the site.
   // The Instagram address is not known yet: it is entered in the panel
   // (Tənzimləmələr → Sosial şəbəkələr) and then appears on every page.

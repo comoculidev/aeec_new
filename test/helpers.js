@@ -52,7 +52,7 @@ async function boot() {
   // The tests run on a private copy of the whole project (site included), exactly as it would be
   // copied to a server - so they never change the real site/ or data/ folders.
   const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'aeec-test-'));
-  for (const f of ['server.js', 'package.json', 'src', 'admin', 'site', 'site-templates']) fs.cpSync(path.join(__dirname, '..', f), path.join(proj, f), { recursive: true });
+  for (const f of ['server.js', 'package.json', 'src', 'admin', 'site', 'site-templates', 'assets']) fs.cpSync(path.join(__dirname, '..', f), path.join(proj, f), { recursive: true });
   const dataDir = path.join(proj, 'data'), siteDir = path.join(proj, 'site');
   const smtp = await fakeSmtp();
   Object.assign(process.env, {
@@ -98,6 +98,8 @@ class Client {
   }
 }
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+// 60×80 px JPEG (photo tests)
+const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCABQADwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDmaKKK+kPCCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//2Q==', 'base64');
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
 const fileForm = (fields, files) => {
   const f = new FormData();
@@ -106,4 +108,4 @@ const fileForm = (fields, files) => {
   return f;
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-module.exports = { boot, Client, PNG, PDF, fileForm, sleep, mails };
+module.exports = { boot, Client, PNG, PDF, JPEG, fileForm, sleep, mails };

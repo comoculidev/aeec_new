@@ -1,7 +1,7 @@
 // Pages: dashboard, analytics, requests, notifications, audit log, profile.
 import { h, raw, setHTML, $, $$, icon, api, qs, state, can, isSuper, toast, showError, nf, fmtDate, fmtDateTime, relDay, fmtSize, fmtDuration, todayBaku, addDays, chip, confirmDialog, promptDialog, modal, download, copyText } from './core.js';
 import { lineChart, groupBars, hbars, donut, funnel, tableView, chartCard } from './charts.js';
-import { dataTable } from './ui.js';
+import { openPdf, dataTable } from './ui.js';
 import { CONTENT_PAGES } from './pages-content.js';
 import { OFFICE_PAGES } from './pages-office.js';
 
@@ -108,7 +108,7 @@ async function analytics(view) {
     const r = rangeDates(), lab = rangeLabel();
     const a = await api.get('/api/analytics' + qs(r));
     const t = a.totals, ls = a.lead_stats;
-    const exportBtns = can('analytics.export') ? h`<div class="row"><span class="muted" style="font-size:13px">Eksport:</span>${[['daily', 'Günlük'], ['pages', 'Səhifələr'], ['sessions', 'Sessiyalar']].map((x) => h`<button class="btn sm" data-aexp="${x[0]},xlsx">${icon('down', 'sm')}${x[1]} (Excel)</button><button class="btn sm ghost" data-aexp="${x[0]},csv">CSV</button>`)}</div>` : '';
+    const exportBtns = can('analytics.export') ? h`<div class="row"><span class="muted" style="font-size:13px">Eksport:</span>${[['daily', 'Günlük'], ['pages', 'Səhifələr'], ['sessions', 'Sessiyalar']].map((x) => h`<button class="btn sm" data-aexp="${x[0]},xlsx">${icon('down', 'sm')}${x[1]} (Excel)</button><button class="btn sm ghost" data-aexp="${x[0]},csv">CSV</button><button class="btn sm ghost" data-aexp="${x[0]},pdf">PDF</button>`)}</div>` : '';
     setHTML(view, h`${rangeBar()}<div class="kpis">
       ${kpi('users', 'Unikal ziyarətçilər', nf(t.visitors), delta(a.change.visitors))}${kpi('file', 'Səhifə baxışları', nf(t.pageviews), delta(a.change.pageviews))}
       ${kpi('chart', 'Sessiyalar', nf(t.sessions), h`<b>${nf(t.new_visitors)}</b> yeni · <b>${nf(t.returning)}</b> təkrar ziyarət`)}${kpi('history', 'Orta sessiya müddəti', fmtDuration(t.avg_duration), h`bir səhifəlik ziyarət: <b>${t.bounce_rate}%</b>`)}</div>
@@ -147,7 +147,7 @@ async function analytics(view) {
     const m = e.target.closest('[data-metric]');
     if (m) { metric = m.dataset.metric; $$('[data-metric]', view).forEach((b) => b.setAttribute('aria-pressed', String(b === m))); drawSeries('a-main', view._series); return; }
     const x = e.target.closest('[data-aexp]');
-    if (x) { const [type, format] = x.dataset.aexp.split(','); download('/api/analytics/export' + qs({ ...rangeDates(), type, format })); }
+    if (x) { const [type, format] = x.dataset.aexp.split(','); (format === 'pdf' ? openPdf : download)('/api/analytics/export' + qs({ ...rangeDates(), type, format })); }
   });
   await draw();
 }

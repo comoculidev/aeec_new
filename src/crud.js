@@ -92,26 +92,27 @@ function checkMedia(def, data) {
 
 function defineResource(app, def) {
   const P = def.perms;
-  const present = (row) => (def.present ? def.present(parseJsonCols(def, { ...row })) : parseJsonCols(def, { ...row }));
+  // def.present(row, ctx) - ctx lets a resource show fields according to the user's permissions.
+  const present = (row, ctx) => (def.present ? def.present(parseJsonCols(def, { ...row }), ctx) : parseJsonCols(def, { ...row }));
   const load = (id) => get(`SELECT * FROM ${def.table} WHERE id = ?`, id);
   const label = (r) => (def.label ? def.label(r) : `#${r.id}`);
 
   app.get(def.path, can(P.view), (ctx) => {
     const r = listRows(def, ctx.query);
-    ctx.json({ items: r.rows.map(present), total: r.total, page: r.page, per_page: r.perPage });
+    ctx.json({ items: r.rows.map((x) => present(x, ctx)), total: r.total, page: r.page, per_page: r.perPage });
   });
   if (def.exportColumns) {
     app.get(`${def.path}/export`, can(P.export || P.view), (ctx) => {
       const r = listRows(def, ctx.query, { all: true });
-      audit(ctx, { action: `Eksport (${ctx.query.format === 'xlsx' ? 'Excel' : 'CSV'})`, module: def.module, summary: `${r.rows.length} sətir eksport edildi` });
-      sendExport(ctx, { name: def.name, columns: def.exportColumns, rows: r.rows.map((x) => parseJsonCols(def, x)), format: ctx.query.format });
+      audit(ctx, { action: `Eksport (${{ xlsx: 'Excel', pdf: 'PDF' }[ctx.query.format] || 'CSV'})`, module: def.module, summary: `${r.rows.length} sətir eksport edildi` });
+      sendExport(ctx, { name: def.name, title: def.exportTitle || def.module, columns: def.exportColumns, pdfColumns: def.pdfColumns, rows: r.rows.map((x) => parseJsonCols(def, x)), format: ctx.query.format });
     });
   }
   if (def.extra) def.extra(app, { present, load });
   app.get(`${def.path}/:id`, can(P.view), (ctx) => {
     const row = load(ctx.intParam('id'));
     if (!row) throw err(404, 'Qeyd tapılmadı');
-    ctx.json({ item: present(row) });
+    ctx.json({ item: present(row, ctx) });
   });
   if (P.create) {
     app.post(def.path, can(P.create), async (ctx) => {
@@ -127,7 +128,7 @@ function defineResource(app, def) {
         return created;
       });
       if (def.afterSave) def.afterSave(ctx, row, null);
-      ctx.json({ item: present(row) }, 201);
+      ctx.json({ item: present(row, ctx) }, 201);
     });
   }
   if (P.edit) {
@@ -149,7 +150,7 @@ function defineResource(app, def) {
         return after;
       });
       if (def.afterSave) def.afterSave(ctx, row, before);
-      ctx.json({ item: present(row) });
+      ctx.json({ item: present(row, ctx) });
     };
     app.put(`${def.path}/:id`, can(P.edit), update(false));
     app.route('PATCH', `${def.path}/:id`, can(P.edit), update(true));

@@ -3,6 +3,8 @@
 import { h, raw, esc, setHTML, $, $$, icon, api, qs, toast, showError, modal, debounce, download, state, fmtSize, slugify, isoToLocalInput, localInputToIso } from './core.js';
 
 /* =====================================================================  data table  */
+// Opens a generated PDF for preview in a new tab (inline=1); the viewer offers print and download.
+export const openPdf = (url) => window.open(url + (url.includes('?') ? '&' : '?') + 'inline=1', '_blank', 'noopener');
 const TABLES = {};
 export function dataTable(host, cfg) {
   const st = TABLES[cfg.id] || (TABLES[cfg.id] = { q: '', f: {}, from: '', to: '', sort: cfg.sort || '', page: 1 });
@@ -13,7 +15,7 @@ export function dataTable(host, cfg) {
     ${filters.map((f) => h`<label class="sr" for="f-${cfg.id}-${f.key}">${f.label}</label><select class="in" id="f-${cfg.id}-${f.key}" data-f="${f.key}"></select>`)}
     ${cfg.dateRange ? h`<span class="drange"><label class="sr" for="d1-${cfg.id}">Başlanğıc tarix</label><input class="in" type="date" id="d1-${cfg.id}" data-d="from" value="${st.from}" title="Başlanğıc tarix"><span class="muted">–</span><label class="sr" for="d2-${cfg.id}">Son tarix</label><input class="in" type="date" id="d2-${cfg.id}" data-d="to" value="${st.to}" title="Son tarix"></span>` : ''}
     <span class="sp"></span>
-    ${cfg.exportUrl ? h`<button class="btn sm" data-exp="xlsx" title="Excel faylı kimi yüklə">${icon('down', 'sm')}Excel</button><button class="btn sm" data-exp="csv" title="CSV faylı kimi yüklə">${icon('down', 'sm')}CSV</button>` : ''}
+    ${cfg.exportUrl ? h`<button class="btn sm" data-exp="pdf" title="PDF: yeni pəncərədə baxış, çap və yükləmə (A4)">${icon('file', 'sm')}PDF</button><button class="btn sm" data-exp="xlsx" title="Excel faylı kimi yüklə">${icon('down', 'sm')}Excel</button><button class="btn sm" data-exp="csv" title="CSV faylı kimi yüklə">${icon('down', 'sm')}CSV</button>` : ''}
     ${cfg.extra || ''}</div><div class="tw" aria-live="polite"><div class="empty">Yüklənir…</div></div><div class="pager"></div>`);
   const tw = $('.tw', host), pg = $('.pager', host);
   const fillFilters = (data) => {
@@ -60,7 +62,8 @@ export function dataTable(host, cfg) {
     const pb = e.target.closest('[data-pg]');
     if (pb) { st.page += Number(pb.dataset.pg); load(); return; }
     const ex = e.target.closest('[data-exp]');
-    if (ex) { download(cfg.exportUrl + qs({ ...params(), format: ex.dataset.exp })); return; }
+    // PDF opens in a new tab (the browser's viewer: preview, print, save); Excel/CSV are downloaded.
+    if (ex) { if (ex.dataset.exp === 'pdf') openPdf(cfg.exportUrl + qs({ ...params(), format: 'pdf' })); else download(cfg.exportUrl + qs({ ...params(), format: ex.dataset.exp })); return; }
     const tr = e.target.closest('tr[data-i]');
     if (!tr) return;
     const row = rows[Number(tr.dataset.i)];

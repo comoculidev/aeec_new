@@ -115,7 +115,10 @@ test('scans: attached to a document, bulk upload by file name, private download'
   const det = (await admin.get(`/api/registry/${doc.id}/details`)).data;
   assert.equal(det.files.length, 1); assert.equal(det.item.files_count, 1);
   const dl = await admin.get(det.files[0].url + '?inline=1');
-  assert.equal(dl.status, 200); assert.match(dl.headers.get('content-security-policy'), /sandbox/); assert.equal(dl.headers.get('cache-control'), 'private, no-store');
+  assert.equal(dl.status, 200); assert.equal(dl.headers.get('content-type'), 'application/pdf');
+  // PDFs open in the browser's viewer (a sandbox CSP would block it); nothing else may load
+  assert.equal(dl.headers.get('content-security-policy'), "default-src 'none'; frame-ancestors 'self'"); assert.equal(dl.headers.get('cache-control'), 'private, no-store');
+  assert.match(dl.headers.get('content-disposition'), /filename="M-001-09-26\.pdf"/, 'downloaded under the number in file-name form');
   assert.equal((await new Client(T.base, '10.7.0.9').get(det.files[0].url)).status, 401, 'not without login');
   // deleting the document removes its scans
   const tmp = (await admin.post('/api/registry', { doc_date: '2026-10-21', doc_type: 'Məktub' })).data.item;
@@ -138,7 +141,7 @@ test('payments: journal entries linked to an invoice update its payment state', 
   assert.equal((await admin.post('/api/ledger', { entry_date: '2026-11-10', kind: 'expense', amount: 0 })).status, 422);
   assert.equal((await admin.post('/api/ledger', { entry_date: '2026-11-10', kind: 'expense', amount: 10, doc_no: 'YOX-1' })).status, 422);
   const t = (await admin.get('/api/ledger/totals?from=2026-11-01&to=2026-11-30')).data.totals.AZN;
-  assert.deepEqual(t, { income: 1180, expense: 300.5, balance: 879.5 });
+  assert.deepEqual(t, { income: 1180, expense: 300.5, balance: 879.5, turnover: 1480.5 });
   const s = (await admin.get('/api/finance/summary?year=2026')).data;
   assert.equal(s.months[10].income, 1180); assert.equal(s.months[10].expense, 300.5);
   assert.ok(!s.receivables.some((r) => r.debt === 680), 'paid invoice is no longer a receivable');

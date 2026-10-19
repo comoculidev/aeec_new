@@ -1,6 +1,6 @@
 {
   "name": "aeec",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "AEEC: korporativ sayt (aeec.az) və idarəetmə paneli — bir layihə, bir server",
   "main": "server.js",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/markdown.test.js test/api.test.js test/site.test.js test/layout.test.js test/office.test.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/markdown.test.js test/api.test.js test/site.test.js test/layout.test.js test/office.test.js test/office-v15.test.js",
     "create-admin": "node --disable-warning=ExperimentalWarning scripts/create-admin.js"
   },
   "dependencies": {}
