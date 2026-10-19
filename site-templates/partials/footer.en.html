@@ -1,0 +1,23 @@
+<!-- Komponent: footer (altbilgi: menyular, əlaqə, sosial şəbəkələr, dil seçimi) — EN dili.
+     Bütün EN səhifələrində «@footer» direktivinin yerinə bu fayl qoyulur (src/site-layout.js).
+     Dəyişiklik yalnız burada edilir — bütün səhifələrdə eyni anda görünür.
+     {{href_az}} / {{href_en}} / {{href_ru}} — dil seçiminin keçidləri, {{cur_xx}} — cari dilin işarəsi.
+     {{social}}  — paneldəki sosial şəbəkə keçidləri (boşdursa sətir tam silinir).
+     Bu şərh sayta göndərilmir. -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="/en/" aria-label="AEEC — home page"><svg viewBox="0 0 389.1 88" aria-hidden="true" focusable="false"><use href="/assets/logo/aeec-logo.svg#logo-h"/></svg></a>
+        <p>Engineering trust. Digital future. Green growth.</p>
+      </div>
+      <nav aria-label="Footer menu: Company"><h2 class="foot-h">Company</h2><ul><li><a href="/en/about/">About</a></li><li><a href="/en/projects/">Projects</a></li><li><a href="/en/sustainability/">Sustainability</a></li><li><a href="/en/news/">News</a></li><li><a href="/en/contact/">Contact</a></li></ul></nav>
+      <nav aria-label="Footer menu: Solutions"><h2 class="foot-h">Solutions</h2><ul><li><a href="/en/solutions/#u-enerji">Energy engineering</a></li><li><a href="/en/solutions/#u-digital">Digital solutions</a></li><li><a href="/en/solutions/#u-green">Green energy</a></li><li><a href="/en/academy/">AEEC Academy</a></li></ul></nav>
+      <div><h2 class="foot-h">Contact</h2>
+        <address>Hasan Aliyev Street, Khirdalan, Azerbaijan<br><a class="tel" href="tel:+994503623038">+994 50 362 30 38</a><br><a class="tel" href="mailto:office@aeec.az">office@aeec.az</a></address>
+        {{social}}
+      </div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 Azerbaijan Energy Engineering and Consulting LLC</span><span class="foot-lang" role="group" aria-label="Language"><a href="{{href_az}}" lang="az" hreflang="az" data-lang="az"{{cur_az}}>Azərbaycan dili</a><a href="{{href_en}}" lang="en" hreflang="en" data-lang="en"{{cur_en}}>English</a><a href="{{href_ru}}" lang="ru" hreflang="ru" data-lang="ru"{{cur_ru}}>Русский</a></span><span><a class="inline" href="/en/privacy/">Privacy policy</a></span></div>
+  </div>
+</footer>

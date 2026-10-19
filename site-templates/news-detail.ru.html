@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{seo_title}} | AEEC</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{self_abs}}">
+{{{alternates}}}
+<meta name="theme-color" content="#0E2147">
+<meta name="format-detection" content="telephone=no">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="AEEC">
+<meta property="og:title" content="{{seo_title}} | AEEC">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{self_abs}}">
+<meta property="og:image" content="{{og_image}}">
+<meta property="og:image:width" content="{{og_w}}">
+<meta property="og:image:height" content="{{og_h}}">
+<meta property="og:image:alt" content="{{og_alt}}">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:locale:alternate" content="az_AZ">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{seo_title}} | AEEC">
+<meta name="twitter:description" content="{{description}}">
+<meta name="twitter:image" content="{{og_image}}">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:wght@600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;family=Noto+Sans+Mono:wght@500&amp;display=swap">
+<link rel="stylesheet" href="/assets/css/style.css?v={{css_v}}">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Главная", "item": "https://aeec.az/ru/"}, {"@type": "ListItem", "position": 2, "name": "Новости", "item": "https://aeec.az/ru/news/"}, {"@type": "ListItem", "position": 3, "name": "{{title|json}}", "item": "{{self_abs|json}}"}]}]}</script>
+</head>
+<body data-site-lang="ru">
+<a class="skip" href="#main">Перейти к основному содержанию</a>
+<!--@header page="{{href_ru}}" az="{{href_az}}" en="{{href_en}}" ru="{{href_ru}}"-->
+
+<main id="main" class="reveal" tabindex="-1">
+<section class="hero-page"><div class="wrap">
+    <nav class="crumbs" aria-label="Навигационная цепочка"><a href="/ru/">Главная</a><span aria-hidden="true">/</span><a href="/ru/news/">Новости</a></nav>
+    <h1 class="art-title">{{title}}</h1>
+  </div></section>
+  <section class="band"><div class="wrap">
+    <article class="article">
+      {{{picture}}}
+      <div class="art-body">
+{{{body}}}
+      </div>
+      <p class="art-foot"><a class="btn btn-line" href="/ru/news/"><span aria-hidden="true">←</span> Все новости</a></p>
+    </article>
+    <aside class="art-more" aria-labelledby="more-h"><h2 id="more-h">Другие новости</h2><ul class="plain">{{{more}}}</ul></aside>
+  </div></section>
+</main>
+
+<!--@footer page="{{href_ru}}" az="{{href_az}}" en="{{href_en}}" ru="{{href_ru}}"-->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="/assets/js/main.js?v={{js_v}}" defer></script>
+</body>
+</html>

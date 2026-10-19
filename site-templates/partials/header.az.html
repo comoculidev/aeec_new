@@ -1,0 +1,30 @@
+<!-- Komponent: header (yuxarı menyu, loqo, dil seçimi) — AZ dili.
+     Bütün AZ səhifələrində «@header» direktivinin yerinə bu fayl qoyulur (src/site-layout.js).
+     Dəyişiklik yalnız burada edilir — bütün səhifələrdə eyni anda görünür.
+     {{href_az}} / {{href_en}} / {{href_ru}} — dil seçiminin keçidləri, {{cur_xx}} — cari dilin işarəsi.
+     Menyuda aktiv bənd avtomatik işarələnir (aria-current="page" / class="is-section").
+     Bu şərh sayta göndərilmir. -->
+<header class="site-header">
+  <div class="wrap hdr">
+    <a class="brand" href="/" aria-label="AEEC — ana səhifə"><svg viewBox="0 0 389.1 88" aria-hidden="true" focusable="false"><use href="/assets/logo/aeec-logo.svg#logo-h"/></svg></a>
+    <nav class="nav" id="nav" aria-label="Əsas menyu">
+      <a href="/haqqimizda/">Haqqımızda</a>
+      <a href="/heller/">Həllər</a>
+      <a href="/layiheler/">Layihələr</a>
+      <a href="/dayaniqliliq/">Dayanıqlılıq</a>
+      <a href="/akademiya/">Akademiya</a>
+      <a href="/xeberler/">Xəbərlər</a>
+      <a href="/elaqe/">Əlaqə</a>
+      <a class="btn btn-primary nav-cta" href="/elaqe/">Layihəni müzakirə edək</a>
+    </nav>
+    <div class="hdr-right">
+      <div class="lang" role="group" aria-label="Dil seçimi">
+        <a href="{{href_az}}" lang="az" hreflang="az" data-lang="az" aria-label="Azərbaycan dili"{{cur_az}}>AZ</a>
+        <a href="{{href_en}}" lang="en" hreflang="en" data-lang="en" aria-label="English"{{cur_en}}>EN</a>
+        <a href="{{href_ru}}" lang="ru" hreflang="ru" data-lang="ru" aria-label="Русский"{{cur_ru}}>RU</a>
+      </div>
+      <a class="btn btn-primary hdr-cta" href="/elaqe/">Layihəni müzakirə edək</a>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Menyunu aç" data-open="Menyunu aç" data-close="Menyunu bağla" aria-expanded="false" aria-controls="nav"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
