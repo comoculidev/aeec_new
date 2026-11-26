@@ -113,10 +113,17 @@ const resetRateLimits = () => buckets.clear();
 // Removes the counters of one limiter whose key starts with the given text (e.g. after an unlock).
 function clearRateLimit(name, keyPrefix) { const p = `${name}|${keyPrefix}`; for (const k of buckets.keys()) if (k.startsWith(p)) buckets.delete(k); }
 const peekRateLimit = (name, key) => { const b = buckets.get(`${name}|${key}`); return b && b.reset > Date.now() ? b.n : 0; };
+// True when some counter of this limiter whose key starts with the text has reached the limit
+// (e.g. "login-pair|user@aeec.az|" = that account is refused from at least one address right now).
+function isBlocked(name, keyPrefix, limit) {
+  const p = `${name}|${keyPrefix}`, t = Date.now();
+  for (const [k, b] of buckets) if (k.startsWith(p) && b.reset > t && b.n >= limit) return true;
+  return false;
+}
 
 module.exports = {
   hashPassword, verifyPassword, burnPasswordTime, passwordProblem,
   randomToken, sha256, hmac, safeEqual,
   newTotpSecret, verifyTotp, totpAt, totpUri, base32Encode, base32Decode,
-  rateLimit, resetRateLimits, clearRateLimit, peekRateLimit,
+  rateLimit, resetRateLimits, clearRateLimit, peekRateLimit, isBlocked,
 };
