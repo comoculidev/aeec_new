@@ -161,7 +161,8 @@ export const showError = (e) => toast(e && e.message ? e.message : 'Xəta baş v
 
 /* ---------- dialogs ---------- */
 // Opens a modal dialog. `build(dialog, close)` fills it. Resolves with the value passed to close().
-export function modal(build, { wide = false, label = 'Pəncərə' } = {}) {
+// sticky: a click outside the window does not close it (forms - nothing typed is lost by accident).
+export function modal(build, { wide = false, label = 'Pəncərə', sticky = false } = {}) {
   return new Promise((resolve) => {
     const d = document.createElement('dialog');
     d.className = 'modal' + (wide ? ' wide' : '');
@@ -169,7 +170,7 @@ export function modal(build, { wide = false, label = 'Pəncərə' } = {}) {
     let result;
     const close = (val) => { result = val; d.close(); };
     d.addEventListener('close', () => { d.remove(); resolve(result); });
-    d.addEventListener('click', (e) => { if (e.target === d) close(undefined); });
+    d.addEventListener('click', (e) => { if (e.target === d && !sticky) close(undefined); });
     document.body.append(d);
     build(d, close);
     d.showModal();
@@ -183,15 +184,17 @@ export function confirmDialog(message, { title = 'Təsdiq', ok = 'Bəli', danger
   }, { label: title }).then((v) => v === true);
 }
 // Small form in a dialog. fields: [{name,label,type,value,help,required,rows}] -> resolves with values or undefined.
-export function promptDialog({ title, fields, ok = 'Yadda saxla', intro = '', submit }) {
+// A field may carry `after` (extra controls next to it, e.g. copy / regenerate buttons) and
+// `attrs` (extra input attributes); onBuild(dialog) runs once the form is on the screen.
+export function promptDialog({ title, fields, ok = 'Yadda saxla', intro = '', submit, onBuild }) {
   return modal((d, close) => {
     setHTML(d, h`<form novalidate><div class="modal-h"><h2>${title}</h2></div><div class="modal-b" style="display:grid;gap:12px">
       ${intro ? h`<p class="muted" style="font-size:13.5px">${intro}</p>` : ''}
       ${fields.map((f) => h`<label class="field"><span>${f.label}${f.required ? ' *' : ''}</span>${f.type === 'textarea'
         ? h`<textarea class="in" name="${f.name}" rows="${f.rows || 5}">${f.value || ''}</textarea>`
         : f.type === 'select' ? h`<select class="in" name="${f.name}">${f.options.map((o) => h`<option value="${o[0]}" ${String(o[0]) === String(f.value) ? raw('selected') : ''}>${o[1]}</option>`)}</select>`
-          : h`<input class="in" name="${f.name}" type="${f.type || 'text'}" value="${f.value || ''}" autocomplete="${f.autocomplete || 'off'}">`}
-        ${f.help ? h`<small>${f.help}</small>` : ''}<small class="ferr" data-err="${f.name}" hidden></small></label>`)}
+          : h`<input class="in${f.mono ? ' mono' : ''}" name="${f.name}" type="${f.type || 'text'}" value="${f.value || ''}" autocomplete="${f.autocomplete || 'off'}" ${f.attrs || ''}>`}
+        ${f.after || ''}${f.help ? h`<small>${f.help}</small>` : ''}<small class="ferr" data-err="${f.name}" hidden></small></label>`)}
       <p class="ferr" data-err="_" hidden></p></div>
       <div class="modal-f"><button type="button" class="btn" data-x>Ləğv et</button><button class="btn pri" type="submit">${ok}</button></div></form>`);
     const form = $('form', d);
@@ -213,7 +216,8 @@ export function promptDialog({ title, fields, ok = 'Yadda saxla', intro = '', su
       }
     });
     const first = form.querySelector('input,textarea,select'); if (first) setTimeout(() => first.focus(), 30);
-  }, { label: title });
+    if (onBuild) onBuild(d);
+  }, { label: title, sticky: true });
 }
 export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 export const download = (url) => { const a = document.createElement('a'); a.href = url; a.download = ''; document.body.append(a); a.click(); a.remove(); };

@@ -111,7 +111,14 @@ module.exports = (app) => {
 
   /* ------------------------------------------------- users and roles */
   const userOut = (u) => ({ id: u.id, name: u.name, email: u.email, role_id: u.role_id, role: u.role_name, role_key: u.role_key, is_active: !!u.is_active, totp_enabled: !!u.totp_enabled,
-    must_change_password: !!u.must_change_password, locked: !!(u.locked_until && Date.parse(u.locked_until) > Date.now()), last_login_at: u.last_login_at, created_at: u.created_at });
+    must_change_password: !!u.must_change_password,
+    // locked = the account itself is locked, OR sign-in for this e-mail is refused from some address
+    // after too many wrong passwords (kept in memory) - both are cleared with «Bloku götür».
+    locked: !!(u.locked_until && Date.parse(u.locked_until) > Date.now()) || sec.isBlocked('login-pair', `${String(u.email).toLowerCase()}|`, config.login.maxFails),
+    last_login_at: u.last_login_at, created_at: u.created_at });
+  // A new or reset password starts with a clean slate: earlier failed attempts for this e-mail
+  // (e.g. trying the account before it existed, or with the old password) no longer block it.
+  const clearLoginBlocks = (email) => sec.clearRateLimit('login-pair', `${String(email).toLowerCase()}|`);
   const userDef = {
     from: 'users u JOIN roles r ON r.id = u.role_id', select: 'u.*, r.name AS role_name, r.key AS role_key', idCol: 'u.id',
     search: ['u.name', 'u.email', 'r.name'], filters: { role_id: { col: 'u.role_id', int: true }, active: { col: 'u.is_active', int: true } },
@@ -144,6 +151,7 @@ module.exports = (app) => {
       audit(ctx, { action: 'Yaratma', module: 'İstifadəçilər', recordId: rid, summary: `${ctx.user.name} yeni istifadəçi yaratdı: ${d.name} (${role.name})`, next: { name: d.name, email: d.email, role: role.name } });
       return rid;
     });
+    clearLoginBlocks(d.email);
     notify.notify('users.manage', { type: 'new_user', title: 'Yeni istifadəçi', body: `${d.name} — ${role.name}`, link: '#/istifadeciler' }, ctx.user.id);
     ctx.json({ item: userOut(loadUserRow(id)) }, 201);
   });
@@ -182,10 +190,13 @@ module.exports = (app) => {
     if (problem) throw err(422, problem, { fields: { password: problem } });
     const hash = await sec.hashPassword(b.password);
     run('UPDATE users SET password_hash = ?, must_change_password = 1, password_changed_at = ?, failed_logins = 0, locked_until = NULL, updated_at = ? WHERE id = ?', hash, now(), now(), target.id);
+    clearLoginBlocks(target.email);
     destroyUserSessions(target.id, target.id === ctx.user.id ? ctx.session.id : '');
   });
   userAction('reset-2fa', '2FA sıfırlandı', (ctx, target) => { run('UPDATE users SET totp_enabled = 0, totp_secret = NULL, totp_last_step = 0, updated_at = ? WHERE id = ?', now(), target.id); });
-  userAction('unlock', 'Blok götürüldü', (ctx, target) => { run('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?', target.id); sec.clearRateLimit('login-pair', `${target.email}|`); });
+  // Also the per-address counter of sign-in attempts: in an office everybody shares one address, so
+  // a few mistyped passwords of colleagues must not keep a just-unlocked person out.
+  userAction('unlock', 'Blok götürüldü', (ctx, target) => { run('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?', target.id); clearLoginBlocks(target.email); sec.clearRateLimit('login-ip', ''); });
   app.delete('/api/users/:id', can('users.manage'), (ctx) => {
     const id = ctx.intParam('id');
     const target = loadUserRow(id);

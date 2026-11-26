@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/markdown.test.js test/api.test.js test/site.test.js test/layout.test.js test/office.test.js test/office-v15.test.js test/site-content.test.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/markdown.test.js test/api.test.js test/site.test.js test/layout.test.js test/office.test.js test/office-v15.test.js test/site-content.test.js test/users-login.test.js",
     "create-admin": "node --disable-warning=ExperimentalWarning scripts/create-admin.js"
   },
   "dependencies": {}

@@ -360,15 +360,45 @@ async function users(view) {
   // Roles are loaded first so the «add user» dialog always has its role list.
   let roles = (await api.get('/api/roles')).roles;
   setHTML(view, h`<section class="card" id="uT"></section><section class="card" id="roles"></section>`);
-  const userDialog = (u) => {
-    const pw = genPassword();
-    return promptDialog({ title: u ? 'İstifadəçini redaktə et' : 'Yeni istifadəçi', ok: u ? 'Yadda saxla' : 'Yarat',
-      intro: u ? '' : 'İstifadəçi ilk girişdə şifrəni dəyişməlidir. Müvəqqəti şifrəni ona təhlükəsiz yolla (məsələn, şifahi) çatdırın.',
-      fields: [{ name: 'name', label: 'Ad, soyad', value: u ? u.name : '', required: true }, { name: 'email', label: 'E-poçt', type: 'email', value: u ? u.email : '', required: true },
+  // The temporary password: one value, shown as plain text, never filled in by the browser's password
+  // manager (the field is not called "password" and is marked to be ignored), with copy / new buttons.
+  // After saving, the exact sign-in details are shown once more to copy and pass on.
+  const NO_FILL = raw('spellcheck="false" autocapitalize="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"');
+  const pwField = (value, help) => ({ name: 'temp_secret', label: 'Müvəqqəti şifrə', value, required: true, mono: true, attrs: NO_FILL, help,
+    after: h`<span class="row" style="gap:6px;margin-top:6px"><button type="button" class="btn sm" data-pw="copy">${icon('copy', 'sm')}Kopyala</button><button type="button" class="btn sm" data-pw="new">${icon('refresh', 'sm')}Yeni şifrə</button></span>` });
+  const wirePw = (d) => d.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-pw]'); if (!b) return;
+    const input = $('input[name=temp_secret]', d);
+    if (b.dataset.pw === 'new') { input.value = genPassword(); input.focus(); input.select(); }
+    else await copyText(input.value);
+  });
+  const showCredentials = (title, email, password) => modal((d, close) => {
+    const text = `Panel: ${location.origin}/admin/\nE-poçt: ${email}\nMüvəqqəti şifrə: ${password}`;
+    setHTML(d, h`<div class="modal-h"><h2>${title}</h2></div><div class="modal-b" style="display:grid;gap:12px">
+      <p class="muted" style="font-size:13.5px">Bu məlumatı istifadəçiyə təhlükəsiz yolla çatdırın. Şifrə yalnız indi göstərilir — sonra heç kim (o cümlədən siz) onu görə bilməyəcək. İstifadəçi ilk girişdə öz şifrəsini təyin edəcək.</p>
+      <div class="card"><div class="card-b" style="display:grid;gap:6px"><div><span class="muted">Panel:</span> <span class="mono">${location.origin}/admin/</span></div><div><span class="muted">E-poçt:</span> <b class="mono">${email}</b></div><div><span class="muted">Müvəqqəti şifrə:</span> <b class="mono" style="font-size:16px">${password}</b></div></div></div></div>
+      <div class="modal-f"><button class="btn" data-copy>${icon('copy', 'sm')}Hamısını kopyala</button><button class="btn pri" data-x>Bağla</button></div>`);
+    d.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-copy]')) await copyText(text);
+      if (e.target.closest('[data-x]')) close();
+    });
+  }, { label: title, sticky: true });
+  const userDialog = async (u) => {
+    let sent = null;
+    const r = await promptDialog({ title: u ? 'İstifadəçini redaktə et' : 'Yeni istifadəçi', ok: u ? 'Yadda saxla' : 'Yarat',
+      intro: u ? '' : 'İstifadəçi ilk girişdə şifrəni dəyişməlidir. Yaradıldıqdan sonra giriş məlumatı kopyalamaq üçün bir daha göstəriləcək.',
+      fields: [{ name: 'name', label: 'Ad, soyad', value: u ? u.name : '', required: true, autocomplete: 'off' }, { name: 'email', label: 'E-poçt', type: 'email', value: u ? u.email : '', required: true, autocomplete: 'off', attrs: NO_FILL },
         { name: 'role_id', label: 'Rol', type: 'select', options: roles.filter((r) => isSuper() || r.key !== 'super_admin').map((r) => [r.id, r.name]), value: u ? u.role_id : (roles.find((r) => r.key === 'viewer') || {}).id },
         { name: 'is_active', label: 'Vəziyyət', type: 'select', options: [['1', 'Aktiv'], ['0', 'Deaktiv']], value: u ? (u.is_active ? '1' : '0') : '1' },
-        ...(u ? [] : [{ name: 'password', label: 'Müvəqqəti şifrə', value: pw, required: true, help: 'Avtomatik yaradılıb; dəyişə bilərsiniz (ən azı 12 simvol).' }])],
-      submit: (v) => { const body = { name: v.name, email: v.email, role_id: Number(v.role_id), is_active: v.is_active === '1', ...(u ? {} : { password: v.password }) }; return u ? api.put(`/api/users/${u.id}`, body) : api.post('/api/users', body); } });
+        ...(u ? [] : [pwField(genPassword(), 'Avtomatik yaradılıb; dəyişə bilərsiniz (ən azı 12 simvol; böyük, kiçik hərf, rəqəm, simvol).')])],
+      onBuild: u ? undefined : wirePw,
+      submit: (v) => {
+        const body = { name: v.name, email: v.email, role_id: Number(v.role_id), is_active: v.is_active === '1', ...(u ? {} : { password: v.temp_secret }) };
+        sent = body;
+        return u ? api.put(`/api/users/${u.id}`, body) : api.post('/api/users', body).catch((e) => { if (e.fields && e.fields.password) e.fields.temp_secret = e.fields.password; throw e; });
+      } });
+    if (r && !u && sent) await showCredentials('İstifadəçi yaradıldı', sent.email, sent.password);
+    return r;
   };
   const table = dataTable($('#uT'), { id: 'users', url: '/api/users', searchPlaceholder: 'Ad, e-poçt, rol…',
     filters: [{ key: 'role_id', label: 'Rol', options: (d) => (d.roles || []).map((r) => [r.id, r.name]) }, { key: 'active', label: 'Vəziyyət', options: [['1', 'Aktiv'], ['0', 'Deaktiv']] }],
@@ -380,7 +410,13 @@ async function users(view) {
     onAction: async (act, u, t) => {
       try {
         if (act === 'edit') { if (await userDialog(u)) { toast('İstifadəçi yeniləndi', 'ok'); t.reload(); loadRoles(); } }
-        else if (act === 'pw') { const pw = genPassword(); const r = await promptDialog({ title: 'Şifrəni sıfırla', ok: 'Sıfırla', intro: `${u.name} üçün yeni müvəqqəti şifrə. İstifadəçi növbəti girişdə onu dəyişməlidir; bütün açıq sessiyaları bağlanacaq.`, fields: [{ name: 'password', label: 'Müvəqqəti şifrə', value: pw, required: true }], submit: (v) => api.post(`/api/users/${u.id}/reset-password`, v) }); if (r) { toast('Şifrə sıfırlandı', 'ok'); t.reload(); } }
+        else if (act === 'pw') {
+          let sentPw = '';
+          const r = await promptDialog({ title: 'Şifrəni sıfırla', ok: 'Sıfırla', intro: `${u.name} üçün yeni müvəqqəti şifrə. İstifadəçi növbəti girişdə onu dəyişməlidir; bütün açıq sessiyaları bağlanacaq, giriş bloku (varsa) götürüləcək.`,
+            fields: [pwField(genPassword())], onBuild: wirePw,
+            submit: (v) => { sentPw = v.temp_secret; return api.post(`/api/users/${u.id}/reset-password`, { password: v.temp_secret }).catch((e) => { if (e.fields && e.fields.password) e.fields.temp_secret = e.fields.password; throw e; }); } });
+          if (r) { t.reload(); await showCredentials('Şifrə sıfırlandı', u.email, sentPw); }
+        }
         else if (act === 'tfa') { if (await confirmDialog(`${u.name} üçün ikimərhələli təsdiq söndürüləcək.`, { ok: 'Sıfırla' })) { await api.post(`/api/users/${u.id}/reset-2fa`); toast('2FA sıfırlandı', 'ok'); t.reload(); } }
         else if (act === 'unlock') { await api.post(`/api/users/${u.id}/unlock`); toast('Blok götürüldü', 'ok'); t.reload(); }
         else if (act === 'del') delAction(`/api/users/${u.id}`, `«${u.name}» hesabı silinəcək. Audit jurnalındakı qeydləri qalır.`, () => { t.reload(); loadRoles(); });
