@@ -325,6 +325,17 @@ CREATE INDEX idx_pbh_block ON page_block_history(page, block, id);
 ALTER TABLE projects ADD COLUMN filter_key TEXT NOT NULL DEFAULT '';
 ALTER TABLE projects ADD COLUMN tag_style TEXT NOT NULL DEFAULT '';
 `,
+  // 6: header and footer are edited from the panel too: menu links (text, address, hidden) and
+  //    links added to a menu are stored as page_blocks of kind 'link' / 'links'.
+  `
+CREATE TABLE page_blocks_v6 (
+  page TEXT NOT NULL, block TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('text','image','link','links')), value TEXT NOT NULL,
+  original TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL, updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  PRIMARY KEY (page, block));
+INSERT INTO page_blocks_v6 SELECT * FROM page_blocks;
+DROP TABLE page_blocks;
+ALTER TABLE page_blocks_v6 RENAME TO page_blocks;
+`,
 ];
 
 // Before an existing database is changed, a full copy is written to data/backups/

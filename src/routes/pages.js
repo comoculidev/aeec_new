@@ -35,14 +35,20 @@ module.exports = (app) => {
       const mid = Number(body.media_id);
       if (!Number.isInteger(mid) || mid < 1 || !get("SELECT id FROM media WHERE id = ? AND is_private = 0 AND kind = 'image'", mid)) throw err(422, 'Media kitabxanasından şəkil seçin', { fields: { media_id: 'Şəkil seçin' } });
       value = { media_id: mid, alt: String(body.alt ?? '').slice(0, 300) };
+    } else if (b.kind === 'link') {
+      value = { text: body.text, href: body.href, hidden: !!body.hidden };
+    } else if (b.kind === 'links') {
+      if (!Array.isArray(body.items) || body.items.length > 12) throw err(422, 'Ən çox 12 əlavə bənd');
+      value = body.items;
     } else {
       value = String(body.value ?? '');
       if (!value.replace(/<[^>]+>/g, '').trim()) throw err(422, 'Mətn boş ola bilməz. Əvvəlki mətnə qayıtmaq üçün «Orijinala qaytar» düyməsini istifadə edin.', { fields: { value: 'Mətn boşdur' } });
       if (value.length > 20000) throw err(422, 'Mətn çox uzundur', { fields: { value: 'Ən çox 20 000 simvol' } });
     }
-    const r = content.saveBlock(rel, id, value, ctx.user);
+    let r;
+    try { r = content.saveBlock(rel, id, value, ctx.user); } catch (e) { if (e.field) throw err(422, e.message, { fields: { [e.field]: e.message } }); throw e; }
     audit(ctx, { action: 'Redaktə', module: 'Səhifələr', recordId: `${rel}#${id}`,
-      summary: `${ctx.user.name} saytın səhifəsini dəyişdi: /${rel.replace(/index\.html$/, '')} — ${b.kind === 'image' ? 'şəkil' : short(r.stored)}`,
+      summary: `${ctx.user.name} saytın ${content.isPartial(rel) ? rel.replace(/^partials\/|\.html$/g, '') : 'səhifəsini: /' + rel.replace(/index\.html$/, '')} dəyişdi — ${b.kind === 'image' ? 'şəkil' : short(r.stored || 'bərpa')}`,
       prev: { value: b.kind === 'image' ? b.src : short(b.inner || b.original) }, next: { value: b.kind === 'image' ? `media #${value.media_id}` : short(r.stored) } });
     ctx.json({ item: content.pageDetail(rel) });
   });
@@ -67,7 +73,7 @@ module.exports = (app) => {
     if (!h) throw err(404, 'Versiya tapılmadı');
     if (!content.blockOf(h.page, h.block)) throw err(409, 'Bu mətn səhifədə artıq yoxdur');
     let value = h.value;
-    if (value !== null && h.kind === 'image') { try { value = JSON.parse(value); } catch { value = null; } }
+    if (value !== null && h.kind !== 'text') { try { value = JSON.parse(value); } catch { value = null; } }
     content.saveBlock(h.page, h.block, value, ctx.user);
     audit(ctx, { action: 'Bərpa', module: 'Səhifələr', recordId: `${h.page}#${h.block}`, summary: `${ctx.user.name} əvvəlki versiyanı bərpa etdi (${h.created_at.slice(0, 10)}): /${h.page.replace(/index\.html$/, '')}` });
     ctx.json({ item: content.pageDetail(h.page) });

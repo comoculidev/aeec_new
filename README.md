@@ -62,7 +62,8 @@ avtomatik yaradılır.
 | LinkedIn, Facebook, **Instagram**, YouTube, Telegram, digər | **Panel → Tənzimləmələr → Sosial şəbəkələr** |
 | Footer-də sosial keçidləri göstər/gizlət | Panel → Tənzimləmələr → Footer |
 | Standart dəyərlər (yeni quraşdırma üçün) | `src/company.js` — koddakı yeganə yer |
-| Menyu, footer-in quruluşu, loqo | `site-templates/partials/header.<dil>.html`, `footer.<dil>.html` |
+| Menyu bəndləri, düymələr, footer mətnləri | **Panel → Səhifələr → Header / Footer** (bax 3a) |
+| Header/footer-in quruluşu (HTML), loqo | `site-templates/partials/header.<dil>.html`, `footer.<dil>.html` |
 
 Paneldə saxlanan dəyər dərhal saytın bütün səhifələrində (footer, Əlaqə səhifəsi, axtarış
 sistemləri üçün JSON-LD) görünür. Saytdan gələn sorğuların bildiriş məktubları Tənzimləmələr →
@@ -79,6 +80,7 @@ Saytın **bütün** məzmunu paneldən idarə olunur; proqramçıya müraciət l
 | Səhifənin başlığı və təsviri (`<title>`, description, og:/twitter:) | **Səhifələr** → «SEO» |
 | /layiheler/ siyahısı, filtr düymələri, sıra; layihə səhifələri /layiheler/<slug>/ (+EN/RU), sitemap | **Layihələr** («Saytda göstər», ↑↓ sıra) |
 | Haqqımızda səhifəsində komanda | **Komanda** (aktiv əməkdaşlar) |
+| Header və footer (bütün səhifələrdə): menyu bəndinin mətni, ünvanı, gizlədilməsi, menyunun sonuna yeni bəndlər; düymələr; footer şüarı, sütun başlıqları, müəllif hüququ sətri | **Səhifələr** → «Bütün səhifələrdə olan hissələr» |
 | Xəbərlər · əlaqə · sosial şəbəkələr · WhatsApp | **Xəbərlər** · **Tənzimləmələr** (əvvəlki kimi) |
 
 Necə işləyir (`src/site-content.js`): `site/` fayllarına **toxunulmur**. Səhifə verilərkən `<main>` daxilindəki
@@ -94,7 +96,8 @@ Faylda mətn proqramçı tərəfindən dəyişdirilsə, köhnə dəyişiklik sad
   göstəriciləri və ya bir neçə abzaslı təsviri olan layihənin öz səhifəsi olur (fayl yaradılmır, birbaşa verilir).
 - **Komanda:** `<!--@team-->` (Haqqımızda, 3 dil) — aktiv əməkdaş yoxdursa heç nə göstərilmir.
 - **İcazələr:** `pages.view`, `pages.edit` (Super Admin hamısı; yeniləmədə «Layihələr»ə icazəsi olan rollara bir dəfə verilir).
-- **Baza:** miqrasiya v5 (`page_blocks`, `page_block_history`, `projects.filter_key/tag_style`), əvvəlində avtomatik nüsxə.
+- **Header/footer:** komponent faylları (`site-templates/partials/`) dəyişmir; panel açarı `partials/header.az.html` və s. Menyu keçidi «link» bloku (mətn, ünvan, gizli), menyunun sonuna əlavələr «links» bloku. Ünvan yalnız sayt yolu, `https://`, `mailto:`, `tel:` ola bilər.
+- **Baza:** miqrasiya v5 (`page_blocks`, `page_block_history`, `projects.filter_key/tag_style`) və v6 (`page_blocks.kind`-ə `link`/`links`), hər birindən əvvəl avtomatik nüsxə.
 - **Kod:** `src/site-content.js`, `src/routes/pages.js`, `admin/assets/pages-site.js`; test: `test/site-content.test.js`.
 
 ## 4. Ofis bölmələri (daxili, saytda görünmür)

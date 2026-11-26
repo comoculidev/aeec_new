@@ -151,7 +151,7 @@ function route() {
       const n = document.createElement('div');
       n.className = 'note warn'; n.style.marginBottom = '16px';
       setHTML(n, tab === 'footer'
-        ? h`${icon('info')}<span>Bu bölmədən saytda yalnız <b>«Sosial şəbəkə keçidlərini göstər»</b> seçimi işləyir. Footer mətni və müəllif hüququ sətri hələ sayt səhifələrinə düşmür (site-templates/partials/footer.*.html faylındadır).</span>`
+        ? h`${icon('info')}<span>Bu bölmədən saytda <b>«Sosial şəbəkə keçidlərini göstər»</b> seçimi işləyir. Footer-in şüarı, menyuları, sütun başlıqları və müəllif hüququ sətri <a href="#/sehifeler"><b>Səhifələr → Footer</b></a> bölməsində dəyişdirilir.</span>`
         : tab === 'seo'
           ? h`${icon('info')}<span>Səhifələrin saytda görünən başlığı və təsviri <a href="#/sehifeler"><b>Səhifələr</b></a> bölməsində, hər səhifənin «SEO» hissəsində dəyişdirilir.</span>`
           : h`${icon('info')}<span>Bu bölmənin məlumatları saytın səhifələrində avtomatik göstərilmir. Saytdakı mətnlər, şəkillər və SEO <a href="#/sehifeler"><b>Səhifələr</b></a> bölməsindən dəyişdirilir. Saytla avtomatik əlaqəli olanlar: <b>Səhifələr</b>, <b>Xəbərlər</b>, <b>Layihələr</b>, <b>Komanda</b>, <b>Tənzimləmələr → Əlaqə</b> və <b>Sosial şəbəkələr</b>, sorğu formaları və ziyarət statistikası.</span>`);

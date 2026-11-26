@@ -252,21 +252,129 @@ function listPages() {
       blocks: blocks.length, edited: edited.get(rel) || 0, projects: html.includes('<!--@projects-->'), team: html.includes('<!--@team-->') });
   }
   const order = (p) => [p.url === '/' || p.url === '/en/' || p.url === '/ru/' ? 0 : p.path === '404.html' ? 2 : 1, p.url.replace(/^\/(en|ru)\//, '/')];
-  return pages.sort((a, b) => { const x = order(a), y = order(b); return x[0] - y[0] || x[1].localeCompare(y[1]) || LANGS.indexOf(a.lang) - LANGS.indexOf(b.lang); });
+  pages.sort((a, b) => { const x = order(a), y = order(b); return x[0] - y[0] || x[1].localeCompare(y[1]) || LANGS.indexOf(a.lang) - LANGS.indexOf(b.lang); });
+  // header and footer first: they are on every page
+  const parts = [];
+  for (const name of ['header', 'footer']) for (const l of LANGS) {
+    const rel = `partials/${name}.${l}.html`;
+    if (!safePage(rel)) continue;
+    parts.push({ path: rel, url: l === 'az' ? '/' : `/${l}/`, lang: l, partial: name, title: PARTIAL_LABEL[name], h1: PARTIAL_LABEL[name], blocks: scanPartial(stripDevComment(fs.readFileSync(safePage(rel), 'utf8'))).length, edited: edited.get(rel) || 0 });
+  }
+  return [...parts, ...pages];
 }
+/* ------------------------------------------------------------------ header and footer */
+// The header and the footer are shared components (site-templates/partials/{header,footer}.<lang>.html,
+// put into every page by src/site-layout.js). In the panel they are edited like a page, with the key
+// "partials/header.az.html" etc.:
+//   link  - a menu item / button: text, address, hidden            (value {text, href, hidden})
+//   links - items added at the end of a menu                       (value [{text, href}, …])
+//   text  - footer slogan, column headings, copyright line          (inline HTML, like page texts)
+const PARTIALS_DIR = path.join(__dirname, '..', 'site-templates', 'partials');
+const PARTIAL_RX = /^partials\/(header|footer)\.(az|en|ru)\.html$/;
+const isPartial = (rel) => PARTIAL_RX.test(String(rel || ''));
+const stripDevComment = (s) => s.replace(/\r\n/g, '\n').replace(/^<!--[\s\S]*?-->\n/, '').replace(/\n$/, '');
+const PARTIAL_LABEL = { header: 'Header — yuxarı menyu', footer: 'Footer — altbilgi' };
+function scanPartial(html) {
+  const out = [];
+  const seen = new Map();
+  const ident = (prefix, key) => { const base = prefix + sha(key).slice(0, 10); const n = (seen.get(base) || 0) + 1; seen.set(base, n); return n > 1 ? `${base}-${n}` : base; };
+  let m;
+  const lrx = /<a\b([^>]*?)\shref="([^"]*)"([^>]*)>([^<]*)<\/a>/g;
+  while ((m = lrx.exec(html))) {
+    if (m[2].includes('{{') || !m[4].trim()) continue;
+    const start = m.index, end = m.index + m[0].length;
+    const inLi = html.slice(start - 4, start) === '<li>' && html.startsWith('</li>', end);
+    out.push({ kind: 'link', tag: 'a', start, end, liStart: inLi ? start - 4 : start, liEnd: inLi ? end + 5 : end, before: m[1], after: m[3], href: decode(m[2]), text: decode(m[4]).trim(), button: /\bbtn\b/.test(m[1] + m[3]) });
+  }
+  const trx = /<(h2|p|span)(\s[^>]*)?>([^<{]+)<\/\1>/g;
+  while ((m = trx.exec(html))) {
+    if (m[1] === 'span' && m[2]) continue; // decorative / structural spans
+    const innerStart = m.index + m[0].indexOf('>') + 1;
+    out.push({ kind: 'text', tag: m[1] === 'span' ? 'copy' : m[1], start: innerStart, end: innerStart + m[3].length, inner: m[3] });
+  }
+  const nrx = /<nav\b([^>]*)>([\s\S]*?)<\/nav>/g;
+  let n = 0;
+  while ((m = nrx.exec(html))) {
+    const label = decode((/aria-label="([^"]*)"/.exec(m[1]) || [])[1] || `Menyu ${n + 1}`);
+    const body = m[0];
+    const ul = body.lastIndexOf('</ul>');
+    const cta = body.indexOf('<a class="btn btn-primary nav-cta"');
+    const at = m.index + (ul !== -1 ? ul : cta !== -1 ? cta : body.lastIndexOf('</nav>'));
+    out.push({ kind: 'links', tag: 'nav', start: at, end: at, li: ul !== -1, indent: cta !== -1 ? '      ' : '', navLabel: label, id: `n-${n++}` });
+  }
+  out.sort((a, b) => a.start - b.start || (a.kind === 'links' ? -1 : 1));
+  for (const b of out) if (!b.id) b.id = b.kind === 'link' ? ident('l-', `${b.href}|${b.text}|${b.before}${b.after}`) : ident('t-', `${b.tag}|${norm(b.inner)}`);
+  return out;
+}
+const partialLink = (b, href, text) => `<a${b.before} href="${escHtml(href)}"${b.after}>${escHtml(text)}</a>`;
+function applyPartial(html, rel) {
+  let o;
+  try { o = overridesFor(rel); } catch { return html; }
+  if (!Object.keys(o).length) return html;
+  const reps = [];
+  for (const b of scanPartial(html)) {
+    const ov = o[b.id];
+    if (!ov) continue;
+    let v;
+    if (b.kind === 'text' && ov.kind === 'text') reps.push([b.start, b.end, ov.value]);
+    else if (b.kind === 'link' && ov.kind === 'link') {
+      try { v = JSON.parse(ov.value); } catch { continue; }
+      if (v.hidden) reps.push([b.liStart, b.liEnd, '']);
+      else reps.push([b.start, b.end, partialLink(b, v.href || b.href, v.text || b.text)]);
+    } else if (b.kind === 'links' && ov.kind === 'links') {
+      try { v = JSON.parse(ov.value); } catch { continue; }
+      if (!Array.isArray(v) || !v.length) continue;
+      const items = v.map((x) => `<a href="${escHtml(x.href)}">${escHtml(x.text)}</a>`);
+      reps.push([b.start, b.end, b.li ? items.map((a) => `<li>${a}</li>`).join('') : b.indent ? items.map((a) => `${a}\n${b.indent}`).join('') : items.join('')]);
+    }
+  }
+  if (!reps.length) return html;
+  reps.sort((a, b) => a[0] - b[0]);
+  let out = '', pos = 0;
+  for (const [s, e, r] of reps) { if (s < pos) continue; out += html.slice(pos, s) + r; pos = e; }
+  return out + html.slice(pos);
+}
+const cleanLink = (x) => {
+  const text = String((x && x.text) || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const href = String((x && x.href) || '').trim().slice(0, 500);
+  return { text, href };
+};
+
 function safePage(rel) {
   rel = String(rel || '');
+  if (isPartial(rel)) {
+    const full = path.join(PARTIALS_DIR, rel.slice('partials/'.length));
+    return fs.existsSync(full) ? full : null;
+  }
   if (!/^(?:[a-z0-9-]+\/)*(?:index|404)\.html$/.test(rel)) return null;
   const full = path.resolve(config.siteDir, rel);
   if (!full.startsWith(config.siteDir + path.sep) || !fs.existsSync(full) || isPanelPage(rel)) return null;
   return full;
 }
+function partialDetail(rel, o) {
+  const [, name, lang] = PARTIAL_RX.exec(rel);
+  const html = stripDevComment(fs.readFileSync(safePage(rel), 'utf8'));
+  const blocks = scanPartial(html).map((b) => {
+    const ov = o[b.id];
+    const base = { id: b.id, kind: b.kind, tag: b.tag, edited: !!ov, updated_at: ov ? ov.updated_at : null, updated_by: ov ? ov.updated_by_name || '' : '' };
+    let v = null;
+    if (ov && ov.kind !== 'text') { try { v = JSON.parse(ov.value); } catch { v = null; } }
+    const cls = `${b.before} ${b.after}`;
+    if (b.kind === 'link') return { ...base, label: /nav-cta/.test(cls) ? 'Düymə — açılan (mobil) menyuda' : /hdr-cta/.test(cls) ? 'Düymə — yuxarı sağda' : b.button ? 'Düymə' : /\binline\b/.test(cls) ? 'Altbilgi keçidi' : 'Menyu bəndi', original: { text: b.text, href: b.href }, value: v };
+    if (b.kind === 'links') return { ...base, label: `Əlavə bəndlər: ${b.navLabel}`, nav: b.navLabel, value: Array.isArray(v) ? v : [] };
+    return { ...base, label: b.tag === 'copy' ? 'Müəllif hüququ sətri' : b.tag === 'h2' ? 'Sütun başlığı' : 'Mətn', original: b.inner.trim(), value: ov ? ov.value : null };
+  });
+  const found = new Set(blocks.map((b) => b.id));
+  return { path: rel, url: lang === 'az' ? '/' : `/${lang}/`, lang, partial: name, title: `${PARTIAL_LABEL[name]} (${lang.toUpperCase()})`, seo: null,
+    blocks, missing: Object.keys(o).filter((k) => !found.has(k)).length, projects: false, team: false };
+}
 function pageDetail(rel) {
   const full = safePage(rel);
   if (!full) return null;
-  const html = fs.readFileSync(full, 'utf8');
   const o = {};
   for (const r of all('SELECT p.block, p.kind, p.value, p.updated_at, u.name AS updated_by_name FROM page_blocks p LEFT JOIN users u ON u.id = p.updated_by WHERE p.page = ?', rel)) o[r.block] = r;
+  if (isPartial(rel)) return partialDetail(rel, o);
+  const html = fs.readFileSync(full, 'utf8');
   const blocks = scan(html).map((b) => {
     const ov = o[b.id];
     const base = { id: b.id, kind: b.kind, tag: b.tag, label: b.kind === 'image' ? 'Şəkil' : TAG_LABEL[b.tag] || 'Mətn', edited: !!ov, updated_at: ov ? ov.updated_at : null, updated_by: ov ? ov.updated_by_name || '' : '' };
@@ -287,8 +395,16 @@ function pageDetail(rel) {
 function blockOf(rel, id) {
   const full = safePage(rel);
   if (!full) return null;
+  if (isPartial(rel)) return scanPartial(stripDevComment(fs.readFileSync(full, 'utf8'))).find((b) => b.id === id) || null;
   if (id === 'seo-title' || id === 'seo-desc') return { id, kind: 'text', seo: true, original: seoOf(fs.readFileSync(full, 'utf8'))[id === 'seo-title' ? 'title' : 'description'] };
   return scan(fs.readFileSync(full, 'utf8')).find((b) => b.id === id) || null;
+}
+// Checks a menu value from the panel; throws a message for the person editing it.
+function validLink(x, what) {
+  const l = cleanLink(x);
+  if (!l.text) throw Object.assign(new Error(`${what}: mətn boşdur`), { field: 'text' });
+  if (!SAFE_HREF.test(l.href)) throw Object.assign(new Error(`${what}: ünvan düzgün deyil. Saytdakı səhifə (/elaqe/), https://… , mailto: və ya tel: yazın.`), { field: 'href' });
+  return l;
 }
 // value: text -> inline HTML (cleaned); image -> { media_id, alt }; null -> back to the original.
 function saveBlock(rel, id, value, user) {
@@ -297,14 +413,18 @@ function saveBlock(rel, id, value, user) {
   let stored = null;
   if (value !== null && value !== undefined) {
     if (b.kind === 'image') stored = JSON.stringify({ media_id: value.media_id, alt: String(value.alt || '').slice(0, 300) });
-    else if (b.seo) stored = String(value).replace(/\s+/g, ' ').trim().slice(0, id === 'seo-title' ? 120 : 300);
+    else if (b.kind === 'link') stored = JSON.stringify(value.hidden ? { ...cleanLink({ text: value.text || b.text, href: value.href || b.href }), hidden: true } : validLink(value, 'Menyu bəndi'));
+    else if (b.kind === 'links') {
+      const list = (Array.isArray(value) ? value : []).slice(0, 12).filter((x) => x && (String(x.text || '').trim() || String(x.href || '').trim())).map((x, i) => validLink(x, `${i + 1}-ci bənd`));
+      stored = list.length ? JSON.stringify(list) : null;
+    } else if (b.seo) stored = String(value).replace(/\s+/g, ' ').trim().slice(0, id === 'seo-title' ? 120 : 300);
     else stored = cleanInline(String(value).trim());
   }
   tx(() => {
     if (stored === null) run('DELETE FROM page_blocks WHERE page = ? AND block = ?', rel, id);
     else run(`INSERT INTO page_blocks (page, block, kind, value, original, updated_at, updated_by) VALUES (?,?,?,?,?,?,?)
               ON CONFLICT(page, block) DO UPDATE SET kind=excluded.kind, value=excluded.value, original=excluded.original, updated_at=excluded.updated_at, updated_by=excluded.updated_by`,
-    rel, id, b.kind, stored, b.kind === 'image' ? b.src : b.seo ? b.original : b.inner.trim(), now(), user ? user.id : null);
+    rel, id, b.kind, stored, b.kind === 'image' ? b.src : b.seo ? b.original : b.kind === 'link' ? JSON.stringify({ text: b.text, href: b.href }) : b.kind === 'links' ? '' : b.inner.trim(), now(), user ? user.id : null);
     run('INSERT INTO page_block_history (page, block, kind, value, user_name, created_at) VALUES (?,?,?,?,?,?)', rel, id, b.kind, stored, user ? user.name : '', now());
   });
   bump();
@@ -559,6 +679,6 @@ function init() {
 }
 
 module.exports = {
-  version, bump, init, importProjects, applyBlocks, renderDirectives, scan, cleanInline, listPages, pageDetail, saveBlock, history, blockOf,
+  version, bump, init, importProjects, applyBlocks, applyPartial, scanPartial, isPartial, renderDirectives, scan, cleanInline, listPages, pageDetail, saveBlock, history, blockOf,
   projectPage, matchProjectPath, sitemapWithProjects, projectsSection, teamSection, PROJ_DIR, LANGS,
 };

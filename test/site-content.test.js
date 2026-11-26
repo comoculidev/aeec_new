@@ -127,6 +127,52 @@ test('pages: texts, SEO and images are changed from the panel, with history and 
   assert.ok(audit.some((a) => a.module === 'Səhifələr'));
 });
 
+test('header and footer: menu items (text, address, hidden), added items, footer texts — per language', async () => {
+  const c = new Client(T.base, '10.30.5.1');
+  const list = (await admin.get('/api/pages')).data.items;
+  assert.deepEqual(list.filter((p) => p.partial).map((p) => p.path), ['partials/header.az.html', 'partials/header.en.html', 'partials/header.ru.html', 'partials/footer.az.html', 'partials/footer.en.html', 'partials/footer.ru.html']);
+  const H = 'partials/header.az.html', F = 'partials/footer.az.html';
+  const hd = (await admin.get(`/api/pages/page?path=${H}`)).data.item;
+  const proj = hd.blocks.find((b) => b.kind === 'link' && b.original.text === 'Layihələr');
+  assert.ok(proj, 'menu item is a block');
+  // rename + new address
+  assert.equal((await admin.put('/api/pages/block', { path: H, block: proj.id, text: 'Portfel', href: '/layiheler/' })).status, 200);
+  let home = (await html(c, '/')).text;
+  assert.match(home, /<nav class="nav"[\s\S]*<a href="\/layiheler\/">Portfel<\/a>[\s\S]*<\/nav>/);
+  assert.match((await html(c, '/layiheler/')).text, /<a href="\/layiheler\/" aria-current="page">Portfel<\/a>/, 'active menu item still marked');
+  assert.ok((await html(c, '/en/')).text.includes('<a href="/en/projects/">Projects</a>'), 'other languages unchanged');
+  // unsafe address refused
+  assert.equal((await admin.put('/api/pages/block', { path: H, block: proj.id, text: 'X', href: 'javascript:alert(1)' })).status, 422);
+  // items added at the end of the main menu
+  const extra = hd.blocks.find((b) => b.kind === 'links' && b.id === 'n-0');
+  assert.equal((await admin.put('/api/pages/block', { path: H, block: extra.id, items: [{ text: 'Karyera', href: '/karyera/' }, { text: 'LinkedIn', href: 'https://www.linkedin.com/company/aeec' }] })).status, 200);
+  home = (await html(c, '/')).text;
+  assert.match(home, /<a href="\/karyera\/">Karyera<\/a>\n {6}<a href="https:\/\/www\.linkedin\.com\/company\/aeec">LinkedIn<\/a>\n {6}<a class="btn btn-primary nav-cta"/);
+  // footer: hide a menu item, change the slogan and the copyright line, add an item
+  const fd = (await admin.get(`/api/pages/page?path=${F}`)).data.item;
+  const sus = fd.blocks.find((b) => b.kind === 'link' && b.original.text === 'Dayanıqlılıq');
+  assert.equal((await admin.put('/api/pages/block', { path: F, block: sus.id, hidden: true })).status, 200);
+  const slogan = fd.blocks.find((b) => b.kind === 'text' && b.tag === 'p');
+  const copy = fd.blocks.find((b) => b.kind === 'text' && b.tag === 'copy');
+  assert.equal((await admin.put('/api/pages/block', { path: F, block: slogan.id, value: 'Yeni şüar' })).status, 200);
+  assert.equal((await admin.put('/api/pages/block', { path: F, block: copy.id, value: '© 2027 AEEK MMC' })).status, 200);
+  const fnav = fd.blocks.find((b) => b.kind === 'links' && /Şirkət/.test(b.nav));
+  assert.equal((await admin.put('/api/pages/block', { path: F, block: fnav.id, items: [{ text: 'Vakansiyalar', href: '/karyera/' }] })).status, 200);
+  const foot = (/<footer class="foot">[\s\S]*<\/footer>/.exec((await html(c, '/elaqe/')).text) || [])[0];
+  assert.ok(!foot.includes('Dayanıqlılıq'), 'hidden in the footer');
+  assert.ok((await html(c, '/elaqe/')).text.includes('<a href="/dayaniqliliq/">Dayanıqlılıq</a>'), 'still in the header');
+  assert.match(foot, /<p>Yeni şüar<\/p>/);
+  assert.match(foot, /<span>© 2027 AEEK MMC<\/span>/);
+  assert.match(foot, /<li><a href="\/elaqe\/">Əlaqə<\/a><\/li><li><a href="\/karyera\/">Vakansiyalar<\/a><\/li><\/ul>/);
+  // back to the original
+  assert.equal((await admin.del(`/api/pages/block?path=${F}&block=${sus.id}`)).status, 200);
+  assert.ok((/<footer class="foot">[\s\S]*<\/footer>/.exec((await html(c, '/')).text) || [])[0].includes('<li><a href="/dayaniqliliq/">Dayanıqlılıq</a></li>'));
+  const hist = (await admin.get(`/api/pages/history?path=${F}&block=${sus.id}`)).data.items;
+  assert.equal(hist.length, 2);
+  assert.equal((await admin.post(`/api/pages/history/${hist[1].id}/restore`)).status, 200, 'restoring a hidden state');
+  assert.ok(!(/<footer class="foot">[\s\S]*<\/footer>/.exec((await html(c, '/')).text) || [])[0].includes('Dayanıqlılıq'));
+});
+
 test('team on the About pages; roles: viewer may look, editor may change', async () => {
   const c = new Client(T.base, '10.30.4.1');
   assert.ok(!(await html(c, '/haqqimizda/')).text.includes('class="tgrid"'), 'no team section while the team is empty');

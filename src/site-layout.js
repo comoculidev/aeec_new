@@ -122,7 +122,8 @@ function renderPage(html, data, rel) {
   let out = html.replace(/<!--@(header|footer)\b([^>]*?)-->/g, (m, name, attrs) => {
     const a = parseAttrs(attrs);
     const cur = (l) => (l === lang ? ' aria-current="true"' : '');
-    let p = partial(name, lang).replace(/\{\{(href|cur)_(az|en|ru)\}\}/g, (x, kind, l) => (kind === 'href' ? escHtml(a[l] || (l === 'az' ? '/' : `/${l}/`)) : cur(l)));
+    // texts and menu items changed in the panel (Səhifələr → Header / Footer)
+    let p = content.applyPartial(partial(name, lang), `partials/${name}.${lang}.html`).replace(/\{\{(href|cur)_(az|en|ru)\}\}/g, (x, kind, l) => (kind === 'href' ? escHtml(a[l] || (l === 'az' ? '/' : `/${l}/`)) : cur(l)));
     if (name === 'header') p = markNav(p, a.page || '');
     const social = data.showSocial && data.links.length ? `<p class="social">${socialLinks(data, lang)}</p>` : '';
     // The line that holds {{social}} disappears completely when there is nothing to show.
