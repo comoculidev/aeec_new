@@ -161,6 +161,7 @@ function defineResource(app, def) {
         if (!Array.isArray(b.ids) || b.ids.length > 500 || !b.ids.every((x) => Number.isInteger(x))) throw err(422, 'Sıra siyahısı düzgün deyil');
         tx(() => b.ids.forEach((id, i) => run(`UPDATE ${def.table} SET sort_order = ? WHERE id = ?`, i + 1, id)));
         audit(ctx, { action: 'Sıra dəyişikliyi', module: def.module, summary: `${ctx.user.name} sıranı dəyişdi`, next: { ids: b.ids } });
+        if (def.afterReorder) def.afterReorder(ctx);
         ctx.json({ ok: true });
       });
     }

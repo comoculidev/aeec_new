@@ -17,6 +17,7 @@ const PERMISSIONS = [
   ['team.view', 'Komanda', 'Baxış'], ['team.create', 'Komanda', 'Yaratma'], ['team.edit', 'Komanda', 'Redaktə'], ['team.delete', 'Komanda', 'Silmə'],
   ['documents.view', 'Sənədlər', 'Baxış'], ['documents.create', 'Sənədlər', 'Yükləmə'], ['documents.edit', 'Sənədlər', 'Redaktə'], ['documents.delete', 'Sənədlər', 'Silmə'],
   ['media.view', 'Media kitabxanası', 'Baxış'], ['media.upload', 'Media kitabxanası', 'Yükləmə'], ['media.edit', 'Media kitabxanası', 'Redaktə'], ['media.delete', 'Media kitabxanası', 'Silmə'],
+  ['pages.view', 'Səhifələr', 'Baxış'], ['pages.edit', 'Səhifələr', 'Saytın mətn və şəkillərini dəyişmə'],
   // Office modules (internal, not on the website): document register, accounting, staff.
   ['registry.view', 'Sənəd reyestri', 'Baxış'], ['registry.edit', 'Sənəd reyestri', 'Yaratma və redaktə (skanlar, idxal)'], ['registry.delete', 'Sənəd reyestri', 'Silmə'],
   ['finance.view', 'Mühasibatlıq', 'Baxış (kontragentlər, gəlir-xərc)'], ['finance.edit', 'Mühasibatlıq', 'Yaratma və redaktə'], ['finance.approve', 'Mühasibatlıq', 'Əməliyyatların təsdiqi'], ['finance.delete', 'Mühasibatlıq', 'Silmə'],
@@ -37,7 +38,7 @@ const allKeys = PERMISSIONS.map((p) => p[0]);
 const OFFICE = allKeys.filter((k) => /^(registry|finance|hr)\./.test(k));
 const except = (...deny) => allKeys.filter((k) => !deny.includes(k) && !SUPER_ONLY.has(k) && !OFFICE.includes(k));
 const content = ['news', 'projects', 'services', 'team', 'documents'].flatMap((m) => ['view', 'create', 'edit', 'delete'].map((a) => `${m}.${a}`))
-  .concat(['company.view', 'company.edit', 'media.view', 'media.upload', 'media.edit', 'media.delete']);
+  .concat(['company.view', 'company.edit', 'media.view', 'media.upload', 'media.edit', 'media.delete', 'pages.view', 'pages.edit']);
 
 const ROLES = [
   { key: 'super_admin', name: 'Super Admin', description: 'Tam giriş. Audit jurnalı, rollar və ehtiyat nüsxə yalnız bu rolda.', perms: allKeys },
@@ -55,6 +56,17 @@ function seedPermissions() {
       if (get('SELECT id FROM roles WHERE key = ?', r.key)) continue; // never overwrite customised roles
       const id = run('INSERT INTO roles (key, name, description, is_system, created_at) VALUES (?,?,?,1,?)', r.key, r.name, r.description, now()).lastInsertRowid;
       for (const k of r.perms) run('INSERT INTO role_permissions (role_id, permission_id) SELECT ?, id FROM permissions WHERE key = ?', id, k);
+    }
+    // Once, on installations made before "Səhifələr" existed: roles that may edit projects may also
+    // edit the site pages (Super Admin always has every permission). Later changes in
+    // "İstifadəçilər və rollar" are never overwritten.
+    if (!get("SELECT value FROM site_meta WHERE key = 'pages_perms_granted'")) {
+      for (const perm of ['pages.view', 'pages.edit']) {
+        run(`INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+             SELECT rp.role_id, p2.id FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id, permissions p2
+             WHERE p.key = ? AND p2.key = ?`, perm === 'pages.view' ? 'projects.view' : 'projects.edit', perm);
+      }
+      run('INSERT OR REPLACE INTO site_meta (key, value) VALUES (?, ?)', 'pages_perms_granted', now());
     }
   });
 }

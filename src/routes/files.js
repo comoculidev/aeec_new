@@ -68,6 +68,7 @@ module.exports = (app) => {
     const d = diff(before, after);
     if (d.changed) audit(ctx, { action: 'Redaktə', module: 'Media', recordId: id, summary: `${ctx.user.name}: ${after.original_name}`, prev: d.prev, next: d.next });
     siteNews.schedule('media dəyişdi');
+    require('../site-content').bump();
     ctx.json({ item: presentMedia(after) });
   });
   app.delete('/api/media/:id', can('media.delete'), (ctx) => {
@@ -80,6 +81,7 @@ module.exports = (app) => {
       audit(ctx, { action: 'Silmə', module: 'Media', recordId: m.id, summary: `${ctx.user.name} sildi: ${m.original_name}`, prev: { name: m.original_name, size: m.size } });
     });
     siteNews.schedule('media silindi');
+    require('../site-content').bump();
     ctx.json({ ok: true });
   });
   // Public media files (images used on the website).

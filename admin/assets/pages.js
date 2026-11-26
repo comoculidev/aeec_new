@@ -4,6 +4,7 @@ import { lineChart, groupBars, hbars, donut, funnel, tableView, chartCard } from
 import { openPdf, dataTable } from './ui.js';
 import { CONTENT_PAGES } from './pages-content.js';
 import { OFFICE_PAGES } from './pages-office.js';
+import { SITE_PAGES } from './pages-site.js';
 
 export const LEAD_COLORS = { new: 'blue', contacted: 'cyan', discussion: 'amber', proposal: 'violet', won: 'green', lost: 'red', archived: 'grey' };
 export const CONTACT_COLORS = { new: 'blue', read: 'cyan', replied: 'green', closed: 'grey' };
@@ -337,5 +338,5 @@ async function profile(view) {
   await draw();
 }
 
-export const PAGES = { dashboard, analitika: analytics, 'layihe-sorgulari': leads, 'elaqe-sorgulari': contacts, bildirisler: notifications, audit, profil: profile, ...CONTENT_PAGES, ...OFFICE_PAGES };
+export const PAGES = { dashboard, analitika: analytics, 'layihe-sorgulari': leads, 'elaqe-sorgulari': contacts, bildirisler: notifications, audit, profil: profile, ...CONTENT_PAGES, ...SITE_PAGES, ...OFFICE_PAGES };
 export { isSuper };

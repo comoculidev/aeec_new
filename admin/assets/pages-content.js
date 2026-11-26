@@ -101,16 +101,29 @@ async function newsForm(view, id) {
 async function projects(view, args) {
   if (args[0]) return projectForm(view, args[0]);
   try { view._sectors = (await api.get('/api/projects/meta')).sectors.map((c) => [c, c]); } catch { view._sectors = []; }
-  setHTML(view, h`<section class="card" id="pT"></section>`);
+  setHTML(view, h`<div class="note" style="margin-bottom:16px">${icon('check')}<span>Saytdakı <a href="/layiheler/" target="_blank" rel="noopener">Layihələr</a> səhifəsi bu siyahıdan qurulur: yalnız <b>«Saytda göstər»</b> işarəli layihələr, burada göstərilən sırada (sıranı sürükləyib dəyişmək olar). Filtr düyməsi <b>Sifarişçi</b> (boşdursa <b>Sektor</b>) sahəsindən yaranır.
+    <b>Əsas şəkli, qalereyası, göstəriciləri və ya bir neçə abzaslı təsviri</b> olan layihənin saytda öz səhifəsi olur (/layiheler/&lt;slug&gt;/, EN və RU ilə).</span></div><section class="card" id="pT"></section>`);
   dataTable($('#pT'), { id: 'projects', url: '/api/projects', dateRange: true, exportUrl: '/api/projects/export', searchPlaceholder: 'Layihə, sifarişçi, yer…',
     filters: [{ key: 'status', label: 'Status', options: opts(PROJECT_STATUS) }, { key: 'sector', label: 'Sektor', options: () => view._sectors || [] }, { key: 'active', label: 'Saytda', options: [['1', 'Aktiv'], ['0', 'Gizli']] }],
     extra: can('projects.create') ? h`<a class="btn sm pri" href="#/layiheler/yeni">${icon('plus', 'sm')}Yeni layihə</a>` : '', onRow: (p) => go('layiheler/' + p.id), emptyText: 'Hələ layihə yoxdur. «Yeni layihə» düyməsi ilə əlavə edin.',
     columns: [{ label: '', render: (p) => mediaThumb(p.main) }, { label: 'Layihənin adı', sort: 'name', render: (p) => h`<b class="t">${p.name}</b>` }, { label: 'Sifarişçi', sort: 'client', render: (p) => p.client || '—' }, { label: 'Yer', render: (p) => p.location || '—' },
       { label: 'Sektor', render: (p) => p.sector || '—' }, { label: 'Başlama', sort: 'start', cls: 'nw', render: (p) => fmtDate(p.start_date) }, { label: 'Bitmə', sort: 'end', cls: 'nw', render: (p) => fmtDate(p.end_date) },
       { label: 'Status', sort: 'status', render: (p) => st(PROJECT_STATUS, p.status) }, { label: 'Saytda', render: (p) => (can('projects.edit') ? h`<input type="checkbox" class="switch" data-act="toggle" aria-label="Saytda göstər" ${p.is_active ? raw('checked') : ''}>` : chip(p.is_active ? 'Aktiv' : 'Gizli', p.is_active ? 'green' : 'grey')) }],
-    actions: (p) => h`<a class="iconbtn" href="#/layiheler/${p.id}" aria-label="Redaktə et" title="Redaktə et">${icon('edit')}</a>${can('projects.delete') ? iconBtn('del', 'trash', 'Sil') : ''}`,
+    actions: (p) => h`${can('projects.edit') ? h`${iconBtn('up', 'up', 'Saytda yuxarı')}${iconBtn('dn', 'dn', 'Saytda aşağı')}` : ''}${p.is_active && p.slug ? h`<a class="iconbtn" href="/layiheler/" target="_blank" rel="noopener" aria-label="Saytda bax" title="Saytda bax">${icon('eye')}</a>` : ''}<a class="iconbtn" href="#/layiheler/${p.id}" aria-label="Redaktə et" title="Redaktə et">${icon('edit')}</a>${can('projects.delete') ? iconBtn('del', 'trash', 'Sil') : ''}`,
     onAction: async (act, p, t) => {
       if (act === 'del') return delAction(`/api/projects/${p.id}`, `«${p.name}» layihəsi həmişəlik silinəcək.`, t.reload);
+      if (act === 'up' || act === 'dn') {
+        // The order on the website = sort_order of all projects (not only the ones on this page of the table).
+        try {
+          const ids = (await api.get('/api/projects?per_page=100&sort=order')).items.map((x) => x.id);
+          const i = ids.indexOf(p.id), j = i + (act === 'up' ? -1 : 1);
+          if (i < 0 || j < 0 || j >= ids.length) return;
+          [ids[i], ids[j]] = [ids[j], ids[i]];
+          await api.post('/api/projects/reorder', { ids });
+          toast('Sıra dəyişdi — saytda da yeniləndi', 'ok');
+        } catch (e) { showError(e); }
+        return t.reload();
+      }
       if (act === 'toggle') { try { await api.patch(`/api/projects/${p.id}`, { is_active: !p.is_active }); toast(p.is_active ? 'Layihə saytda gizlədildi' : 'Layihə saytda aktiv edildi', 'ok'); } catch (e) { showError(e); } t.reload(); }
     } });
 }

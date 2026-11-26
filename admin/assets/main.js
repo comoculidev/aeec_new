@@ -9,7 +9,7 @@ const logo = (cls = '') => h`<svg class="${cls}" viewBox="0 0 389.1 88" role="im
 const NAV = [
   ['ÜMUMİ', [['dashboard', 'İdarə paneli', 'grid', ['dashboard.view']], ['analitika', 'Analitika', 'chart', ['analytics.view']]]],
   ['SORĞULAR', [['layihe-sorgulari', 'Layihə sorğuları', 'inbox', ['leads.view']], ['elaqe-sorgulari', 'Əlaqə sorğuları', 'mail', ['contacts.view']]]],
-  ['MƏZMUN', [['xeberler', 'Xəbərlər', 'news', ['news.view']], ['layiheler', 'Layihələr', 'brief', ['projects.view']], ['xidmetler', 'Xidmətlər', 'layers', ['services.view']],
+  ['MƏZMUN', [['sehifeler', 'Səhifələr', 'globe', ['pages.view']], ['xeberler', 'Xəbərlər', 'news', ['news.view']], ['layiheler', 'Layihələr', 'brief', ['projects.view']], ['xidmetler', 'Xidmətlər', 'layers', ['services.view']],
     ['sirket', 'Şirkət məlumatları', 'building', ['company.view', 'company.edit']], ['komanda', 'Komanda', 'users', ['team.view']], ['senedler', 'Sənədlər', 'file', ['documents.view']], ['media', 'Media kitabxanası', 'image', ['media.view']]]],
   // Internal office work (not on the website): register, accounting, staff.
   ['OFİS', [['reyestr', 'Sənəd reyestri', 'table', ['registry.view']], ['kontragentler', 'Kontragentlər', 'building', ['finance.view']], ['gelir-xerc', 'Gəlir və xərc', 'chart', ['finance.view']],
@@ -122,7 +122,8 @@ async function refreshBadges() {
 document.addEventListener('aeec:badges', refreshBadges);
 
 let cleanup = [];
-const NOT_ON_SITE = ['layiheler', 'xidmetler', 'sirket', 'komanda', 'senedler'];
+// Sections whose data the website pages do not read (their texts are edited in «Səhifələr»).
+const NOT_ON_SITE = ['xidmetler', 'sirket', 'senedler'];
 function route() {
   const parts = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').map((p) => p.slice(0, 120));
   let name = parts[0] || firstRoute();
@@ -142,7 +143,7 @@ function route() {
   if (!state.user.must_change_password) refreshBadges();
   Promise.resolve(PAGES[name](view, parts.slice(1), { onCleanup: (f) => cleanup.push(f), reload: route })).then(() => {
     // Honest notice: these sections store data (and serve it through /api/public/*), but the
-    // pages of the current website are still hand-written HTML and do not read it yet.
+    // website pages do not read it; their texts are edited in «Səhifələr».
     // "Əlaqə" and "Sosial şəbəkələr" ARE shown on the site (src/site-layout.js); the footer tab partly.
     const tab = parts[1] || '';
     const settingsTab = name === 'tenzimlemeler' && ['', 'umumi', 'seo', 'footer'].includes(tab);
@@ -151,7 +152,9 @@ function route() {
       n.className = 'note warn'; n.style.marginBottom = '16px';
       setHTML(n, tab === 'footer'
         ? h`${icon('info')}<span>Bu bölmədən saytda yalnız <b>«Sosial şəbəkə keçidlərini göstər»</b> seçimi işləyir. Footer mətni və müəllif hüququ sətri hələ sayt səhifələrinə düşmür (site-templates/partials/footer.*.html faylındadır).</span>`
-        : h`${icon('info')}<span>Bu bölmənin məlumatları hələ saytın səhifələrində avtomatik göstərilmir — sayt səhifələri (Haqqımızda, Həllər, Layihələr) hazırda ayrıca HTML fayllarıdır. Saytla avtomatik əlaqəli olanlar: <b>Xəbərlər</b>, <b>Tənzimləmələr → Əlaqə</b> (e-poçt, telefon, ünvan), <b>Tənzimləmələr → Sosial şəbəkələr</b>, <b>sorğu formaları</b> və <b>ziyarət statistikası</b>.</span>`);
+        : tab === 'seo'
+          ? h`${icon('info')}<span>Səhifələrin saytda görünən başlığı və təsviri <a href="#/sehifeler"><b>Səhifələr</b></a> bölməsində, hər səhifənin «SEO» hissəsində dəyişdirilir.</span>`
+          : h`${icon('info')}<span>Bu bölmənin məlumatları saytın səhifələrində avtomatik göstərilmir. Saytdakı mətnlər, şəkillər və SEO <a href="#/sehifeler"><b>Səhifələr</b></a> bölməsindən dəyişdirilir. Saytla avtomatik əlaqəli olanlar: <b>Səhifələr</b>, <b>Xəbərlər</b>, <b>Layihələr</b>, <b>Komanda</b>, <b>Tənzimləmələr → Əlaqə</b> və <b>Sosial şəbəkələr</b>, sorğu formaları və ziyarət statistikası.</span>`);
       view.prepend(n);
     }
   }, (e) => {

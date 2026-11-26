@@ -439,9 +439,11 @@ test('services, projects, team: reorder and public output', async () => {
     stats: [{ label: 'Güc', value: '2 MVt' }, { label: '', value: '' }] });
   assert.equal(p.status, 201, JSON.stringify(p.data));
   assert.equal((await admin.post('/api/projects', { name: 'Tarix səhvi', start_date: '2026-08-01', end_date: '2026-01-01' })).status, 422);
-  assert.equal((await pubc.get('/api/public/projects')).data.items[0].stats.length, 1);
+  // The 11 projects of the hand-written /layiheler/ page are imported on first start (src/site-content.js).
+  const mine = async () => (await pubc.get('/api/public/projects')).data.items.find((x) => x.slug === p.data.item.slug);
+  assert.equal((await mine()).stats.length, 1);
   await admin.patch(`/api/projects/${p.data.item.id}`, { is_active: false });
-  assert.equal((await pubc.get('/api/public/projects')).data.items.length, 0);
+  assert.equal(await mine(), undefined);
   const t = await admin.post('/api/team', { name: 'Tayfun Hacılı', position: 'Direktor', linkedin: 'ftp://x' });
   assert.equal(t.status, 422);
   assert.equal((await admin.post('/api/team', { name: 'Tayfun Hacılı', position: 'Direktor' })).status, 201);

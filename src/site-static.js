@@ -16,6 +16,7 @@ const config = require('./config');
 const { sendFile, MIME } = require('./http');
 const settings = require('./settings');
 const layout = require('./site-layout');
+const content = require('./site-content');
 
 // Old address -> new address (exactly the list that was in .htaccess).
 const OLD = {
@@ -47,7 +48,7 @@ function notFound(ctx) {
   const page = path.join(config.siteDir, '404.html');
   ctx.res.setHeader('Cache-Control', 'no-cache');
   let body = 'Tapılmadı';
-  try { body = layout.servedPage(page, fs.statSync(page), settings).body; } catch (e) { if (e.code !== 'ENOENT') console.error('[site] 404.html', e.message); }
+  try { body = layout.servedPage(page, fs.statSync(page), settings, config.siteDir).body; } catch (e) { if (e.code !== 'ENOENT') console.error('[site] 404.html', e.message); }
   ctx.send(404, body, 'text/html; charset=utf-8');
 }
 
@@ -56,7 +57,12 @@ const gzCache = new Map();
 function sendText(ctx, full, st, ext) {
   const { res, req } = ctx;
   // HTML: the assembled page (its ETag follows the content, so a panel change is never hidden by a cache).
-  const page = ext === '.html' ? layout.servedPage(full, st, settings) : null;
+  // sitemap.xml: the file plus the project pages made in the panel.
+  let page = ext === '.html' ? layout.servedPage(full, st, settings, config.siteDir) : null;
+  if (!page && full === path.join(config.siteDir, 'sitemap.xml')) {
+    const xml = Buffer.from(content.sitemapWithProjects(fs.readFileSync(full, 'utf8')), 'utf8');
+    page = { body: xml, etag: `"sm-${require('node:crypto').createHash('sha1').update(xml).digest('base64url').slice(0, 20)}"` };
+  }
   const etag = page ? page.etag : `"${st.size.toString(16)}-${Math.floor(st.mtimeMs).toString(16)}"`;
   res.setHeader('Content-Type', TYPES[ext] || MIME[ext] || 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', CACHE(ext));
@@ -70,6 +76,20 @@ function sendText(ctx, full, st, ext) {
     if (!gz) { gz = zlib.gzipSync(body); if (gzCache.size > 300) gzCache.clear(); gzCache.set(key, gz); }
     body = gz; res.setHeader('Content-Encoding', 'gzip');
   }
+  res.writeHead(200, { 'Content-Length': body.length });
+  res.end(req.method === 'HEAD' ? undefined : body);
+}
+
+function sendVirtual(ctx, key, html) {
+  const { res, req } = ctx;
+  const page = layout.servedVirtual(key, html, settings);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('ETag', page.etag);
+  res.setHeader('Vary', 'Accept-Encoding');
+  if (req.headers['if-none-match'] === page.etag) { res.writeHead(304); res.end(); return; }
+  let body = page.body;
+  if (/\bgzip\b/.test(req.headers['accept-encoding'] || '') && body.length > 1024) { body = zlib.gzipSync(body); res.setHeader('Content-Encoding', 'gzip'); }
   res.writeHead(200, { 'Content-Length': body.length });
   res.end(req.method === 'HEAD' ? undefined : body);
 }
@@ -91,7 +111,16 @@ function serveSite(ctx) {
   const full = path.resolve(config.siteDir, '.' + p);
   if (full !== config.siteDir && !full.startsWith(config.siteDir + path.sep)) return notFound(ctx);
   let st;
-  try { st = fs.statSync(full); } catch { return notFound(ctx); }
+  try { st = fs.statSync(full); } catch {
+    // Project pages made in the panel have no file: /layiheler/<slug>/, /en/projects/<slug>/, /ru/projects/<slug>/
+    const pm = content.matchProjectPath(p);
+    if (pm) {
+      const html = content.projectPage(pm.lang, pm.slug);
+      if (html) return sendVirtual(ctx, `${pm.lang}/${pm.slug}`, html);
+    }
+    if (!p.endsWith('/') && content.matchProjectPath(p + '/')) return ctx.redirect(enc + '/' + qs, 301);
+    return notFound(ctx);
+  }
   if (st.isDirectory()) {
     if (!p.endsWith('/')) return ctx.redirect(enc + '/' + qs, 301);
     const index = path.join(full, 'index.html');
