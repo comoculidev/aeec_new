@@ -13,6 +13,7 @@ const analytics = require('./src/analytics');
 const { systemAlert } = require('./src/notify');
 const { serveSite } = require('./src/site-static');
 const siteNews = require('./src/site-news');
+const siteContent = require('./src/site-content');
 const { proxyProblem } = require('./src/proxycheck');
 
 const ADMIN_DIR = path.join(__dirname, 'admin');
@@ -21,6 +22,7 @@ async function start() {
   migrate();
   await seed();
   siteNews.init();
+  siteContent.init(); // site pages edited from the panel (texts, images, projects, team)
   const app = createApp();
   let ipWarned = false;
   app.use((ctx) => {
@@ -32,6 +34,7 @@ async function start() {
   require('./src/routes/public')(app);
   require('./src/routes/auth')(app);
   require('./src/routes/content')(app);
+  require('./src/routes/pages')(app); // «Səhifələr»: texts, images and SEO of the site pages
   require('./src/routes/files')(app);
   require('./src/routes/requests')(app);
   require('./src/routes/admin')(app);

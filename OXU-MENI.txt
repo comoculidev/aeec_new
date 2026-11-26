@@ -109,6 +109,10 @@ Serverdə (Ubuntu) SSH ilə, əmrləri bir-bir icra edin.
 
 3. SONRADAN YENİLƏMƏK
 ═════════════════════
+Versiya 1.6 (saytın paneldən idarəsi) üçün əlavə heç nə lazım deyil: yeni paket yoxdur, .env
+dəyişmir. İlk işə düşəndə baza özü yenilənir (əvvəlcə data/backups/-a nüsxə yazılır) və Layihələr
+səhifəsindəki 11 layihə panelə köçürülür. Yoxlama: Panel → Səhifələr (yeni bölmə; header və footer də orada), Panel → Layihələr.
+
 Yeni versiyanın qovluğunu serverə yükləyin və köhnəsinin üzərinə yazın, AMMA iki şeyə
 toxunmayın: data/ qovluğu və .env faylı (bütün məlumatlar, şifrələr, sorğular orada).
 Sonra:  sudo chown -R aeec:aeec /opt/aeec && sudo systemctl restart aeec

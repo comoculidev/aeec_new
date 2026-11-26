@@ -1,6 +1,6 @@
 # AEEC — korporativ sayt (aeec.az) və idarəetmə paneli
 
-Azərbaycan Enerji Encinirinq ənd Konsaltinq MMC · versiya 1.5 (sayt v3.3)
+Azərbaycan Enerji Encinirinq ənd Konsaltinq MMC · versiya 1.6 (sayt v3.4)
 
 Bir layihə, bir proses, bir port: sayt, admin panel və API eyni Node.js tətbiqidir.
 Xarici kitabxana yoxdur (yalnız Node-un daxili modulları), build mərhələsi yoxdur.
@@ -62,11 +62,43 @@ avtomatik yaradılır.
 | LinkedIn, Facebook, **Instagram**, YouTube, Telegram, digər | **Panel → Tənzimləmələr → Sosial şəbəkələr** |
 | Footer-də sosial keçidləri göstər/gizlət | Panel → Tənzimləmələr → Footer |
 | Standart dəyərlər (yeni quraşdırma üçün) | `src/company.js` — koddakı yeganə yer |
-| Menyu, footer-in quruluşu, loqo | `site-templates/partials/header.<dil>.html`, `footer.<dil>.html` |
+| Menyu bəndləri, düymələr, footer mətnləri | **Panel → Səhifələr → Header / Footer** (bax 3a) |
+| Header/footer-in quruluşu (HTML), loqo | `site-templates/partials/header.<dil>.html`, `footer.<dil>.html` |
 
 Paneldə saxlanan dəyər dərhal saytın bütün səhifələrində (footer, Əlaqə səhifəsi, axtarış
 sistemləri üçün JSON-LD) görünür. Saytdan gələn sorğuların bildiriş məktubları Tənzimləmələr →
 E-poçt bildirişləri siyahısına, siyahı boşdursa Əlaqə bölməsindəki e-poçta gedir.
+
+## 3a. Saytın paneldən idarəsi (1.6)
+
+Saytın **bütün** məzmunu paneldən idarə olunur; proqramçıya müraciət lazım deyil.
+
+| Saytda nə | Paneldə harada |
+|---|---|
+| Hər səhifənin başlıqları, mətnləri, siyahıları, düymələri, forma yazıları (AZ/EN/RU) | **Səhifələr** → səhifə → dil |
+| Səhifələrdəki şəkillər (media kitabxanasından seçilir) və onların alt mətni | **Səhifələr** |
+| Səhifənin başlığı və təsviri (`<title>`, description, og:/twitter:) | **Səhifələr** → «SEO» |
+| /layiheler/ siyahısı, filtr düymələri, sıra; layihə səhifələri /layiheler/<slug>/ (+EN/RU), sitemap | **Layihələr** («Saytda göstər», ↑↓ sıra) |
+| Haqqımızda səhifəsində komanda | **Komanda** (aktiv əməkdaşlar) |
+| Header və footer (bütün səhifələrdə): menyu bəndinin mətni, ünvanı, gizlədilməsi, menyunun sonuna yeni bəndlər; düymələr; footer şüarı, sütun başlıqları, müəllif hüququ sətri | **Səhifələr** → «Bütün səhifələrdə olan hissələr» |
+| Xəbərlər · əlaqə · sosial şəbəkələr · WhatsApp | **Xəbərlər** · **Tənzimləmələr** (əvvəlki kimi) |
+
+Necə işləyir (`src/site-content.js`): `site/` fayllarına **toxunulmur**. Səhifə verilərkən `<main>` daxilindəki
+hər mətn elementi (h1–h6, p, li, dt/dd, label, button…) və şəkil «blok» sayılır; blokun açarı onun teqi
+və **orijinal məzmununun heşidir**, ona görə faylın başqa yerləri dəyişsə də dəyişiklik yerində qalır.
+Paneldə saxlanan mətn təhlükəsiz inline HTML-ə çevrilir (qalın, kursiv, keçid, sətir keçidi; skript və
+təhlükəli keçidlər silinir). Hər saxlama `page_block_history`-də qalır («Tarixçə» → «Bu versiyanı bərpa et»),
+«Orijinala qaytar» faylın öz mətnini geri qaytarır, hər əməliyyat audit jurnalına yazılır.
+Faylda mətn proqramçı tərəfindən dəyişdirilsə, köhnə dəyişiklik sadəcə tətbiq olunmur (panel bunu göstərir).
+
+- **Layihələr:** `<!--@projects-->` … `<!--/@projects-->` arası (3 dildə) bazadan qurulur. İlk işə salınmada
+  səhifədəki 11 layihə panelə köçürülür (siyahı bayt-bayt eyni qalır). Əsas şəkli, qalereyası,
+  göstəriciləri və ya bir neçə abzaslı təsviri olan layihənin öz səhifəsi olur (fayl yaradılmır, birbaşa verilir).
+- **Komanda:** `<!--@team-->` (Haqqımızda, 3 dil) — aktiv əməkdaş yoxdursa heç nə göstərilmir.
+- **İcazələr:** `pages.view`, `pages.edit` (Super Admin hamısı; yeniləmədə «Layihələr»ə icazəsi olan rollara bir dəfə verilir).
+- **Header/footer:** komponent faylları (`site-templates/partials/`) dəyişmir; panel açarı `partials/header.az.html` və s. Menyu keçidi «link» bloku (mətn, ünvan, gizli), menyunun sonuna əlavələr «links» bloku. Ünvan yalnız sayt yolu, `https://`, `mailto:`, `tel:` ola bilər.
+- **Baza:** miqrasiya v5 (`page_blocks`, `page_block_history`, `projects.filter_key/tag_style`) və v6 (`page_blocks.kind`-ə `link`/`links`), hər birindən əvvəl avtomatik nüsxə.
+- **Kod:** `src/site-content.js`, `src/routes/pages.js`, `admin/assets/pages-site.js`; test: `test/site-content.test.js`.
 
 ## 4. Ofis bölmələri (daxili, saytda görünmür)
 
@@ -139,7 +171,7 @@ data/                  (işə salınanda yaranır, git-də yoxdur) baza, yüklə
 - **Yeni səhifə:** mövcud səhifəni kopyalayın, `page` və dil keçidlərini düzəldin,
   `site/sitemap.xml`-ə əlavə edin, lazımdırsa menyu bəndini partials-a yazın.
 - **CSS/JS:** `site/assets/css/style.css`, `site/assets/js/main.js`. Bunlar 1 il keşlənir —
-  dəyişəndən sonra səhifələrdəki `?v=` nömrəsini artırın (`style.css?v=3.2`, `main.js?v=3.3`).
+  dəyişəndən sonra səhifələrdəki `?v=` nömrəsini artırın (`style.css?v=3.4`, `main.js?v=3.3`).
 - **Xəbərlər:** yalnız paneldən (səhifələr avtomatik yaradılır; `site/xeberler/`, `en/news/`,
   `ru/news/` fayllarını əl ilə redaktə etməyin).
 

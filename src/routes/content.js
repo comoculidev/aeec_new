@@ -7,6 +7,7 @@ const { defineResource, slugify, uniqueSlug } = require('../crud');
 const { mediaById, mediaList } = require('../files');
 const { can } = require('../auth');
 const siteNews = require('../site-news');
+const siteContent = require('../site-content');
 const { audit } = require('../audit');
 
 const mediaId = () => v.int({ min: 1 });
@@ -122,7 +123,10 @@ module.exports = (app) => {
       if (!existing && !d.sort_order) d.sort_order = (get('SELECT COALESCE(MAX(sort_order), 0) AS m FROM projects').m || 0) + 1;
     },
     present: (r) => ({ ...r, main: mediaById(r.main_media_id), gallery_items: mediaList(r.gallery),
-      document_items: (r.documents || []).map((id) => get('SELECT id, title, visibility FROM documents WHERE id = ?', id)).filter(Boolean) }),
+      document_items: (r.documents || []).map((id) => get('SELECT id, title, visibility FROM documents WHERE id = ?', id)).filter(Boolean),
+      site_url: `/layiheler/${r.slug}/` }),
+    // The project list and project pages of the website follow every change at once.
+    afterSave: () => siteContent.bump(), afterDelete: () => siteContent.bump(), afterReorder: () => siteContent.bump(),
     exportColumns: [
       { label: 'ID', get: (r) => r.id }, { label: 'Layihənin adı', get: (r) => r.name }, { label: 'Sifarişçi', get: (r) => r.client }, { label: 'Yer', get: (r) => r.location },
       { label: 'Sektor', get: (r) => r.sector }, { label: 'Layihə növü', get: (r) => r.project_type }, { label: 'Başlama', get: (r) => r.start_date || '' }, { label: 'Bitmə', get: (r) => r.end_date || '' },
@@ -172,6 +176,8 @@ module.exports = (app) => {
     label: (r) => `Əməkdaş #${r.id} «${r.name}»`,
     prepare(ctx, d, existing) { if (!existing && !d.sort_order) d.sort_order = (get('SELECT COALESCE(MAX(sort_order), 0) AS m FROM team_members').m || 0) + 1; },
     present: (r) => ({ ...r, photo: mediaById(r.photo_media_id) }),
+    // Active members are shown on the About pages of the website.
+    afterSave: () => siteContent.bump(), afterDelete: () => siteContent.bump(), afterReorder: () => siteContent.bump(),
   });
 };
 module.exports.NEWS_STATUS = NEWS_STATUS;

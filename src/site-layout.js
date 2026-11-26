@@ -112,13 +112,18 @@ function siteData(getSetting) {
 const socialLinks = (d, lang) => d.links.map((x) => `<a href="${escHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escHtml(x.label)}<span class="sr-only">${NEW_WINDOW[lang]}</span></a>`).join('');
 
 /* ------------------------------------------------------------------ rendering */
-// Builds the page that visitors receive from the file in site/.
-function renderPage(html, data) {
+// Builds the page that visitors receive from the file in site/. `rel` = the file's path inside site/
+// (used for the texts, images and SEO saved in the panel's "Səhifələr" section).
+function renderPage(html, data, rel) {
   const lang = (/<html lang="(az|en|ru)"/.exec(html) || [])[1] || 'az';
+  const content = require('./site-content');
+  if (rel) html = content.applyBlocks(html, rel);
+  html = content.renderDirectives(html, lang);
   let out = html.replace(/<!--@(header|footer)\b([^>]*?)-->/g, (m, name, attrs) => {
     const a = parseAttrs(attrs);
     const cur = (l) => (l === lang ? ' aria-current="true"' : '');
-    let p = partial(name, lang).replace(/\{\{(href|cur)_(az|en|ru)\}\}/g, (x, kind, l) => (kind === 'href' ? escHtml(a[l] || (l === 'az' ? '/' : `/${l}/`)) : cur(l)));
+    // texts and menu items changed in the panel (Səhifələr → Header / Footer)
+    let p = content.applyPartial(partial(name, lang), `partials/${name}.${lang}.html`).replace(/\{\{(href|cur)_(az|en|ru)\}\}/g, (x, kind, l) => (kind === 'href' ? escHtml(a[l] || (l === 'az' ? '/' : `/${l}/`)) : cur(l)));
     if (name === 'header') p = markNav(p, a.page || '');
     const social = data.showSocial && data.links.length ? `<p class="social">${socialLinks(data, lang)}</p>` : '';
     // The line that holds {{social}} disappears completely when there is nothing to show.
@@ -146,11 +151,13 @@ function renderPage(html, data) {
 // Rendered pages are kept in memory, keyed by the file's size/time and by the settings version
 // (src/settings.js increases it on every save), so a change is visible on the next request.
 const pageCache = new Map();
-function servedPage(full, st, settings) {
-  const key = `${full}|${st.size}|${st.mtimeMs}|${settings.version()}`;
+function servedPage(full, st, settings, siteDir) {
+  const content = require('./site-content');
+  const key = `${full}|${st.size}|${st.mtimeMs}|${settings.version()}|${content.version()}`;
   let entry = pageCache.get(key);
   if (!entry) {
-    const body = Buffer.from(renderPage(fs.readFileSync(full, 'utf8'), siteData(settings.getSetting)), 'utf8');
+    const rel = siteDir && full.startsWith(siteDir + path.sep) ? path.relative(siteDir, full).split(path.sep).join('/') : '';
+    const body = Buffer.from(renderPage(fs.readFileSync(full, 'utf8'), siteData(settings.getSetting), rel), 'utf8');
     entry = { body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 22)}"` };
     if (pageCache.size > 400) pageCache.clear();
     pageCache.set(key, entry);
@@ -158,4 +165,18 @@ function servedPage(full, st, settings) {
   return entry;
 }
 
-module.exports = { renderPage, siteData, servedPage, parseAttrs, markNav, LANGS, PARTIALS_DIR };
+// A page that has no file (project pages): built in memory, then assembled like any other page.
+function servedVirtual(key, html, settings) {
+  const content = require('./site-content');
+  const k = `virtual|${key}|${settings.version()}|${content.version()}`;
+  let entry = pageCache.get(k);
+  if (!entry) {
+    const body = Buffer.from(renderPage(html, siteData(settings.getSetting), ''), 'utf8');
+    entry = { body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 22)}"` };
+    if (pageCache.size > 400) pageCache.clear();
+    pageCache.set(k, entry);
+  }
+  return entry;
+}
+
+module.exports = { renderPage, siteData, servedPage, servedVirtual, parseAttrs, markNav, LANGS, PARTIALS_DIR };
