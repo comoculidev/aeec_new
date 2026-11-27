@@ -70,6 +70,14 @@ function render(md) {
     flushList(); flushQuote(); para.push(line);
   }
   flush();
-  return out.join('\n');
+  // Two or more pictures in a row (each on its own line) become one photo slider.
+  const merged = [];
+  for (let i = 0; i < out.length;) {
+    let j = i;
+    while (j < out.length && out[j].startsWith('<figure>')) j++;
+    if (j - i >= 2) { merged.push('<div class="slider"><div class="slides">' + out.slice(i, j).join('') + '</div></div>'); i = j; }
+    else { merged.push(out[i]); i++; }
+  }
+  return merged.join('\n');
 }
 module.exports = { render, esc, safeUrl };

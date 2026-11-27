@@ -185,7 +185,7 @@ test('upgrade 1.3: links saved empty before 1.3 are filled once, other values ar
 test('system status reports the mail transport (was hidden by a comment)', async () => {
   const s = (await admin.get('/api/system')).data;
   assert.equal(s.mail_transport, 'smtp');
-  assert.equal(s.site_dir, T.siteDir);
+  assert.equal(fs.realpathSync(s.site_dir), fs.realpathSync(T.siteDir)); // macOS: /var is a link to /private/var
 });
 
 test('old addresses still redirect (the server does it; the old redirect files were removed)', async () => {
@@ -209,7 +209,10 @@ test('no broken internal links or assets on any page', async () => {
     const { html } = await page(urlOf(rel));
     const refs = [...html.matchAll(/\s(?:href|src)="(\/[^"#?]*)(?:[?#][^"]*)?"/g), ...html.matchAll(/\ssrcset="([^"]+)"/g)]
       .flatMap((m) => (m[0].includes('srcset') ? m[1].split(',').map((x) => x.trim().split(/\s+/)[0]) : [m[1]]))
-      .filter((u) => u.startsWith('/') && !u.startsWith('//'));
+      .filter((u) => u.startsWith('/') && !u.startsWith('//'))
+      // a hand-written page may point to a news item written in the panel (e.g. Academy -> PPM training);
+      // those pages come from the live database, not from this test's one
+      .filter((u) => !/^\/(xeberler|en\/news|ru\/news)\/[a-z0-9-]+\/$/.test(u) || /^\/xeberler\/(azerbaycan|bmt|iea)-/.test(u) || /^\/(en|ru)\/news\/(azerbaijan|un|iea)-/.test(u));
     for (const u of refs) {
       if (!seen.has(u)) {
         let r = await visitor.get(u);

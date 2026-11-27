@@ -33,6 +33,7 @@ module.exports = (app) => {
     perms: { view: 'news.view', create: 'news.create', edit: 'news.edit', delete: 'news.delete' },
     shape: {
       ...newsText, title: v.str({ max: 200, required: true }), slug: v.slug(), slug_en: v.slug(), slug_ru: v.slug(), site_image: siteImage(), cover_media_id: mediaId(), gallery: idList(30),
+      social_linkedin: v.socialUrl(['linkedin.com', 'lnkd.in']), social_facebook: v.socialUrl(['facebook.com', 'fb.com', 'fb.watch']), social_instagram: v.socialUrl(['instagram.com']),
       category: v.str({ max: 80 }), tags: v.arr(v.str({ max: 40 }), { max: 20 }), author_name: v.str({ max: 120 }),
       status: v.oneOf(Object.keys(NEWS_STATUS), { default: 'draft' }), is_featured: v.bool(), published_at: v.datetime(), i18n: v.i18n(newsText),
     },

@@ -173,7 +173,13 @@ function createApp() {
         const status = e instanceof HttpError ? e.status : 500;
         if (status >= 500) console.error(`[error] ${req.method} ${String(req.url).split('?')[0]}`, e);
         if (e.headers) for (const [k, v] of Object.entries(e.headers)) res.setHeader(k, v);
-        if (!req.complete) { res.setHeader('Connection', 'close'); res.on('finish', () => req.destroy()); }
+        if (!req.complete) {
+          res.setHeader('Connection', 'close');
+          // A body of moderate size is read to the end and thrown away, so the client receives the answer
+          // (e.g. 413) instead of a reset connection; anything bigger is cut off once the answer is sent.
+          const declared = parseInt(req.headers['content-length'] || '0', 10);
+          if (declared > 0 && declared <= 4 * 1024 * 1024) req.resume(); else res.on('finish', () => req.destroy());
+        }
         const body = JSON.stringify({ error: { code: e instanceof HttpError ? e.code : 'server_error', message: status >= 500 ? 'Daxili xəta baş verdi' : e.message, fields: e.fields } });
         res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);

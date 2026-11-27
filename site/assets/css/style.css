@@ -67,6 +67,11 @@ a:hover .arrow{transform:translateX(3px)}
 .hdr-cta{min-height:42px;padding:0 16px;font-size:14.5px;white-space:nowrap}
 .nav a{white-space:nowrap}
 @media (max-width:1320px){.nav a{padding:8px 9px;font-size:14.5px}}
+/* the header row may use a little more width than the page text, so that longer menus (RU) fit on one line */
+.site-header .wrap{max-width:1360px}
+.hdr>*{min-width:0}
+html[lang="ru"] .nav a{padding:8px 8px;font-size:14.5px}
+html[lang="ru"] .hdr{gap:18px}
 @media (max-width:420px){.brand svg{height:36px;width:159px}}
 @media (max-width:1180px){
   .nav{display:none;position:absolute;left:0;right:0;top:72px;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 20px;box-shadow:var(--shadow)}
@@ -74,6 +79,14 @@ a:hover .arrow{transform:translateX(3px)}
   .nav a{padding:12px}
   .menu-btn{display:inline-flex}
   .hdr-cta{display:none}
+}
+@media (max-width:1260px){
+  html[lang="ru"] .nav{display:none;position:absolute;left:0;right:0;top:72px;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 20px;box-shadow:var(--shadow)}
+  html[lang="ru"] .nav.open{display:flex}
+  html[lang="ru"] .nav a{padding:12px}
+  html[lang="ru"] .menu-btn{display:inline-flex}
+  html[lang="ru"] .hdr-cta{display:none}
+  html[lang="ru"] .nav .nav-cta{display:inline-flex;justify-content:center;margin-top:10px;padding:0 22px;color:#fff;font-weight:600}
 }
 @media (max-width:480px){.lang a{padding:11px 7px}.brand svg{height:34px;width:150px}}
 
@@ -338,7 +351,29 @@ main:focus{outline:none}
 .art-img img{width:100%;height:100%;object-fit:cover;display:block}
 .art-body p{font-size:17.5px;line-height:1.75}
 .art-body p+p{margin-top:18px}
+.art-body h2{font-size:22px;line-height:1.3;margin:40px 0 14px}
+.art-body figure{margin:28px 0}
+.art-body figure img{width:100%;height:auto;display:block;border-radius:12px}
+.art-body figcaption{margin-top:10px;font-size:14.5px;color:var(--muted)}
+.slider{margin-top:18px}
+.slides{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none;border-radius:12px}
+.slides::-webkit-scrollbar{display:none}
+.slides:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.slides figure{flex:0 0 100%;margin:0;scroll-snap-align:start}
+.slides figure img{aspect-ratio:4/3;object-fit:cover}
+.sl-bar{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:14px}
+.sl-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:18px;cursor:pointer;display:grid;place-items:center}
+.sl-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue-ink)}
+.sl-btn:disabled{opacity:.35;cursor:default}
+.sl-count{font-size:14.5px;color:var(--muted);min-width:48px;text-align:center;font-variant-numeric:tabular-nums}
 .art-foot{margin-top:40px;padding-top:28px;border-top:1px solid var(--line)}
+.art-social{margin-top:40px;padding-top:24px;border-top:1px solid var(--line)}
+.art-social-h{font-size:15px;font-weight:600;color:var(--muted);margin:0 0 12px}
+.soc-list{display:flex;flex-wrap:wrap;gap:10px}
+.soc{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:600;text-decoration:none}
+.soc:hover{border-color:var(--blue);color:var(--blue-ink)}
+.soc svg{flex:none}
+.art-social+.art-foot{margin-top:28px;border-top:0;padding-top:0}
 .art-more{max-width:820px;margin-top:56px}
 .art-more h2{font-size:22px;margin-bottom:14px}
 .art-more a{text-decoration:none;display:block;padding:4px 0}
@@ -380,8 +415,8 @@ main:focus{outline:none}
 .nf-actions{margin-top:32px}
 
 /* v3.4 — content managed in the admin panel: project pictures, project pages, team */
-.prow h3 a{text-decoration:none}
-.prow h3 a:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
+.prow h3 a,.proj h3 a{text-decoration:none}
+.prow h3 a:hover,.proj h3 a:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
 .prow .pthumb{width:100%;height:auto;max-width:150px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-top:6px}
 .project .pfacts{grid-template-columns:140px 1fr;margin:0 0 32px;padding:20px 24px;background:var(--surface);border:1px solid var(--line);border-radius:12px;max-width:820px}
 .project .psub{font-size:22px;margin:44px 0 18px}

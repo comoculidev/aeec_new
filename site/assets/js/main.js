@@ -95,7 +95,7 @@
       if (nav.classList.contains('open') && !nav.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false);
     });
     nav.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
-    window.addEventListener('resize', function () { if (window.innerWidth > 1180) setMenu(false); });
+    window.addEventListener('resize', function () { if (menuBtn.offsetParent === null) setMenu(false); }); // burger hidden = full menu shown
   }
 
   /* ── dil seçimini yadda saxla (yalnız bu brauzerdə) ── */
@@ -176,6 +176,29 @@
       doc.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); });
       doc.querySelectorAll('#plist .prow').forEach(function (r) { r.hidden = !(f === 'all' || r.dataset.f === f); });
     });
+  });
+
+  /* ── foto slayder (xəbər mətnində ardıcıl şəkillər) ── */
+  var SL = { az: ['Əvvəlki foto', 'Növbəti foto', 'Fotolar'], en: ['Previous photo', 'Next photo', 'Photos'], ru: ['Предыдущее фото', 'Следующее фото', 'Фотографии'] }[LANG] || ['Əvvəlki foto', 'Növbəti foto', 'Fotolar'];
+  doc.querySelectorAll('.slider').forEach(function (sl) {
+    var track = sl.querySelector('.slides');
+    var n = track.children.length;
+    sl.setAttribute('role', 'region'); sl.setAttribute('aria-roledescription', 'carousel'); sl.setAttribute('aria-label', SL[2]);
+    track.tabIndex = 0;
+    var bar = doc.createElement('div'); bar.className = 'sl-bar';
+    bar.innerHTML = '<button type="button" class="sl-btn" aria-label="' + SL[0] + '">&#8592;</button><span class="sl-count" aria-live="polite"></span><button type="button" class="sl-btn" aria-label="' + SL[1] + '">&#8594;</button>';
+    sl.appendChild(bar);
+    var btn = bar.querySelectorAll('.sl-btn'), count = bar.querySelector('.sl-count');
+    var idx = 0;
+    var step = function () { return n > 1 ? track.children[1].offsetLeft - track.children[0].offsetLeft : track.clientWidth; };
+    var show = function (i) { idx = i; count.textContent = (i + 1) + ' / ' + n; btn[0].disabled = i === 0; btn[1].disabled = i === n - 1; };
+    var go = function (i) { i = Math.max(0, Math.min(n - 1, i)); show(i); track.scrollTo({ left: i * step(), behavior: 'smooth' }); };
+    btn[0].addEventListener('click', function () { go(idx - 1); });
+    btn[1].addEventListener('click', function () { go(idx + 1); });
+    track.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx - 1); } if (e.key === 'ArrowRight') { e.preventDefault(); go(idx + 1); } });
+    // swipe / touchpad: follow the photo that has settled in view
+    var t; track.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(function () { show(Math.max(0, Math.min(n - 1, Math.round(track.scrollLeft / Math.max(1, step()))))); }, 120); }, { passive: true });
+    show(0);
   });
 
   /* ── kopyalama ── */
