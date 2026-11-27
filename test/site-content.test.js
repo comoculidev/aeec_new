@@ -68,7 +68,7 @@ test('home page cards: the first three projects with a picture, in the panel ord
   assert.ok(home.includes('<p class="res"><b>Nəticə:</b> Üçüncü obyekt istismara verildi.</p>'));
   assert.ok(!home.includes('Dünya Bankı</span><h3>'), 'hand-written cards are replaced');
   const en = (await html(c, '/en/')).text;
-  assert.ok(en.includes(`<h3><a href="/en/projects/${made[2].slug}/">Üçüncü card project</a></h3>`));
+  assert.ok(en.includes('<h3><a href="/en/projects/ucuncu-card-project/">Üçüncü card project</a></h3>'), 'English address from the English name');
   assert.ok(en.includes('<p class="res"><b>Result:</b> Üçüncü handed over.</p>'));
   const page = (await admin.get('/api/pages/page?path=index.html')).data.item;
   assert.equal(page.featured, true);
@@ -102,13 +102,21 @@ test('a project made in the panel: list, own page in 3 languages, sitemap, hide'
   assert.match(az.text, /<b>110 kV<\/b><span>Gərginlik<\/span>/);
   assert.ok(az.text.includes('<header') || az.text.includes('class="site-header"'), 'normal header');
   assert.ok(!az.text.includes('<!--@header'), 'components are assembled');
-  const en = await html(c, `/en/projects/${slug}/`);
+  // English and Russian pages use a slug made from the English name; the old address redirects
+  const enSlug = 'overhead-lines-and-outdoor-switchyard';
+  const moved = await c.get(`/en/projects/${slug}/`);
+  assert.equal(moved.status, 301);
+  assert.equal(moved.headers.get('location'), `/en/projects/${enSlug}/`);
+  assert.match(az.text, new RegExp(`en="/en/projects/${enSlug}/"|hreflang="en" href="[^"]*/en/projects/${enSlug}/"`));
+  const en = await html(c, `/en/projects/${enSlug}/`);
   assert.equal(en.status, 200);
+  assert.equal((await c.get(`/ru/projects/${enSlug}/`)).status, 200);
   assert.match(en.text, /<h1 class="art-title">Overhead lines and outdoor switchyard<\/h1>/);
   assert.match(en.text, /<html lang="en">/);
   assert.equal((await c.get(`/layiheler/${slug}`)).status, 301, 'address without the final slash');
   const sm = await html(c, '/sitemap.xml');
-  assert.ok(sm.text.includes(`/en/projects/${slug}/</loc>`), 'sitemap lists the project pages');
+  assert.ok(sm.text.includes(`/en/projects/${enSlug}/</loc>`), 'sitemap lists the project pages');
+  assert.ok(sm.text.includes(`/layiheler/${slug}/</loc>`));
   assert.equal((await admin.patch(`/api/projects/${p.data.item.id}`, { is_active: false })).status, 200);
   assert.equal((await c.get(`/layiheler/${slug}/`)).status, 404, 'hidden project has no page');
   assert.ok(!(await html(c, '/layiheler/')).text.includes(slug), 'and is not in the list');

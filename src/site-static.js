@@ -116,6 +116,7 @@ function serveSite(ctx) {
     const pm = content.matchProjectPath(p);
     if (pm) {
       const html = content.projectPage(pm.lang, pm.slug);
+      if (html && html.redirect) return ctx.redirect(html.redirect + qs, 301);
       if (html) return sendVirtual(ctx, `${pm.lang}/${pm.slug}`, html);
     }
     if (!p.endsWith('/') && content.matchProjectPath(p + '/')) return ctx.redirect(enc + '/' + qs, 301);

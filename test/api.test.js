@@ -526,3 +526,15 @@ test('robustness: malformed input never causes a 500', async () => {
   const big = await admin.req('POST', '/api/news', { raw: '{"title":"' + 'x'.repeat(700 * 1024) + '"}', headers: { 'Content-Type': 'application/json' } });
   assert.equal(big.status, 413);
 });
+
+test('www.aeec.az redirects to the main address', async () => {
+  const http = require('node:http');
+  const r = await new Promise((resolve, reject) => {
+    const q = http.get(T.base + '/haqqimizda/?a=1', { headers: { Host: 'www.aeec.az' } }, (res) => { res.resume(); resolve(res); });
+    q.on('error', reject);
+  });
+  assert.equal(r.statusCode, 301);
+  assert.equal(r.headers.location, 'https://aeec.az/haqqimizda/?a=1');
+  const same = await fetch(T.base + '/haqqimizda/', { redirect: 'manual' });
+  assert.equal(same.status, 200);
+});
