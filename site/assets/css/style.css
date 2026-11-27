@@ -67,6 +67,11 @@ a:hover .arrow{transform:translateX(3px)}
 .hdr-cta{min-height:42px;padding:0 16px;font-size:14.5px;white-space:nowrap}
 .nav a{white-space:nowrap}
 @media (max-width:1320px){.nav a{padding:8px 9px;font-size:14.5px}}
+/* the header row may use a little more width than the page text, so that longer menus (RU) fit on one line */
+.site-header .wrap{max-width:1360px}
+.hdr>*{min-width:0}
+html[lang="ru"] .nav a{padding:8px 8px;font-size:14.5px}
+html[lang="ru"] .hdr{gap:18px}
 @media (max-width:420px){.brand svg{height:36px;width:159px}}
 @media (max-width:1180px){
   .nav{display:none;position:absolute;left:0;right:0;top:72px;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 20px;box-shadow:var(--shadow)}
@@ -74,6 +79,14 @@ a:hover .arrow{transform:translateX(3px)}
   .nav a{padding:12px}
   .menu-btn{display:inline-flex}
   .hdr-cta{display:none}
+}
+@media (max-width:1260px){
+  html[lang="ru"] .nav{display:none;position:absolute;left:0;right:0;top:72px;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 20px;box-shadow:var(--shadow)}
+  html[lang="ru"] .nav.open{display:flex}
+  html[lang="ru"] .nav a{padding:12px}
+  html[lang="ru"] .menu-btn{display:inline-flex}
+  html[lang="ru"] .hdr-cta{display:none}
+  html[lang="ru"] .nav .nav-cta{display:inline-flex;justify-content:center;margin-top:10px;padding:0 22px;color:#fff;font-weight:600}
 }
 @media (max-width:480px){.lang a{padding:11px 7px}.brand svg{height:34px;width:150px}}
 

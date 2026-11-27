@@ -95,7 +95,7 @@
       if (nav.classList.contains('open') && !nav.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false);
     });
     nav.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
-    window.addEventListener('resize', function () { if (window.innerWidth > 1180) setMenu(false); });
+    window.addEventListener('resize', function () { if (menuBtn.offsetParent === null) setMenu(false); }); // burger hidden = full menu shown
   }
 
   /* ── dil seçimini yadda saxla (yalnız bu brauzerdə) ── */
