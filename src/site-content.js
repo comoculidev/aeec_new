@@ -18,6 +18,9 @@
 // 3. Project pages /layiheler/<slug>/, /en/projects/<slug>/, /ru/projects/<slug>/ (served directly)
 //    for projects with a picture, a gallery, indicators or a longer description; plus sitemap.xml.
 // 4. Team on the About pages: <!--@team--> shows the active members of "Komanda".
+// 5. "Seçilmiş layihələr" cards on the home pages: between <!--@featured--> and <!--/@featured-->
+//    the first three shown projects that have a picture, in the panel order (arrows in "Layihələr").
+//    While no project has a picture the hand-written cards stay.
 //
 // Every change in the panel increases version(); the page cache uses it, so a saved change is
 // visible on the next request.
@@ -101,7 +104,7 @@ const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
 // Parts of <main> that are built from the panel elsewhere and therefore are not text blocks.
 function excludedRanges(html, start, end) {
   const out = [];
-  for (const rx of [/<!--@(projects|team)-->[\s\S]*?<!--\/@\1-->/g, /<script\b[\s\S]*?<\/script>/gi, /<!--@team-->/g]) {
+  for (const rx of [/<!--@(projects|team|featured)-->[\s\S]*?<!--\/@\1-->/g, /<script\b[\s\S]*?<\/script>/gi, /<!--@team-->/g]) {
     rx.lastIndex = start;
     let m;
     while ((m = rx.exec(html)) && m.index < end) out.push([m.index, m.index + m[0].length]);
@@ -390,7 +393,7 @@ function pageDetail(rel) {
   const found = new Set(blocks.map((b) => b.id));
   const missing = Object.keys(o).filter((k) => !found.has(k) && !k.startsWith('seo-')).length;
   return { path: rel, url: urlOf(rel), lang: langOf(html), title: seo.title, seo: { title: seo.title, description: seo.description, title_value: o['seo-title'] ? o['seo-title'].value : null, desc_value: o['seo-desc'] ? o['seo-desc'].value : null },
-    blocks, missing, projects: html.includes('<!--@projects-->'), team: html.includes('<!--@team-->') };
+    blocks, missing, projects: html.includes('<!--@projects-->'), team: html.includes('<!--@team-->'), featured: html.includes('<!--@featured-->') };
 }
 function blockOf(rel, id) {
   const full = safePage(rel);
@@ -603,6 +606,33 @@ function sitemapWithProjects(xml) {
   return xml.replace('</urlset>', add + '</urlset>');
 }
 
+/* ------------------------------------------------------------------ home page project cards */
+const RESULT = { az: 'Nəticə', en: 'Result', ru: 'Результат' };
+// The text under a "## Nəticə" / "## Result" / "## Результат" heading of the description, if any.
+function resultOf(desc, lang) {
+  const rx = /^##\s*(Nəticə|Result|Результат)\s*$/im;
+  const m = rx.exec(String(desc || ''));
+  if (!m) return '';
+  return firstPara(String(desc).slice(m.index + m[0].length).replace(/^\s+/, '').split(/\n##\s/)[0]);
+}
+function featuredSection(lang, ind) {
+  if (!projectsManaged()) return '';
+  const cards = [];
+  for (const p of projectsFor(lang)) {
+    if (cards.length === 3) break;
+    const img = p.hasPage ? mediaFile(p.row.main_media_id) : null;
+    if (!img) continue;
+    const text = firstPara(p.t.description);
+    const res = resultOf(p.t.description, lang);
+    const tag = p.label ? `<span class="tag${p.row.tag_style ? ' ' + escHtml(p.row.tag_style) : ''}">${escHtml(p.label)}</span>` : '';
+    cards.push(`${ind}<article class="proj">
+${ind}  <a class="ph" href="${escHtml(p.url)}" tabindex="-1" aria-hidden="true"><img src="${escHtml(img.src)}" alt="" width="${img.width}" height="${img.height}" loading="lazy" decoding="async"></a>
+${ind}  <div class="bd">${tag}<h3><a href="${escHtml(p.url)}">${escHtml(p.t.name)}</a></h3>${text ? `<p>${escHtml(text)}</p>` : ''}${res ? `<p class="res"><b>${RESULT[lang]}:</b> ${escHtml(res)}</p>` : ''}</div>
+${ind}</article>`);
+  }
+  return cards.length ? cards.join('\n') + '\n' : '';
+}
+
 /* ------------------------------------------------------------------ team */
 function teamSection(lang) {
   let rows;
@@ -627,6 +657,9 @@ function renderDirectives(html, lang) {
     out = out.replace(/[ \t]*<!--\/?@projects-->\n/g, '');
   }
   out = out.replace(/[ \t]*<!--@team-->\n?/g, () => { const s = teamSection(lang); return s ? `  ${s}\n` : ''; });
+  if (out.includes('<!--@featured-->')) {
+    out = out.replace(/([ \t]*)<!--@featured-->\n([\s\S]*?)[ \t]*<!--\/@featured-->\n/, (m, ind, orig) => featuredSection(lang, ind) || orig);
+  }
   return out;
 }
 function projectsManaged() {

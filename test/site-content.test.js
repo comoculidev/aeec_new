@@ -39,6 +39,46 @@ test('project list: the hand-written projects are imported and the page stays ex
   assert.equal(ggf.i18n.en.name, 'Staff training and energy audit services');
 });
 
+test('home page cards: the first three projects with a picture, in the panel order', async () => {
+  const c = new Client(T.base, '10.30.1.2');
+  // no project has a picture yet: the hand-written cards stay
+  let home = (await html(c, '/')).text;
+  assert.ok(home.includes('<span class="tag">Dünya Bankı</span><h3>Azərbaycanda elektrik və qaz şəbəkələrinin tədqiqi</h3>'));
+  assert.ok(!home.includes('<!--@featured') && !home.includes('<!--/@featured'), 'markers are not sent to visitors');
+  assert.equal((home.match(/<article class="proj">/g) || []).length, 3);
+  const up = await admin.req('POST', '/api/media', { form: fileForm({ folder: 'Layihələr' }, [['file', 'kart.png', PNG, 'image/png']]) });
+  assert.equal(up.status, 201, JSON.stringify(up.data));
+  const mid = up.data.item.id;
+  const made = [];
+  for (const n of ['Birinci', 'İkinci', 'Üçüncü', 'Dördüncü']) {
+    const r = await admin.post('/api/projects', {
+      name: `${n} kart layihəsi`, sector: 'Enerji mühəndisliyi', status: 'completed', is_active: true, main_media_id: mid,
+      description: `${n} qısa təsvir.\n\n## Nəticə\n${n} obyekt istismara verildi.`,
+      i18n: { en: { name: `${n} card project`, description: `${n} short text.\n\n## Result\n${n} handed over.` } },
+    });
+    assert.equal(r.status, 201, JSON.stringify(r.data));
+    made.push(r.data.item);
+  }
+  const all = (await admin.get('/api/projects?per_page=100&sort=order')).data.items;
+  const order = [made[2], made[0], made[3], made[1]].map((p) => p.id);
+  assert.equal((await admin.post('/api/projects/reorder', { ids: [...order, ...all.map((p) => p.id).filter((id) => !order.includes(id))] })).status, 200);
+  home = (await html(c, '/')).text;
+  const titles = [...home.matchAll(/<article class="proj">[\s\S]*?<h3><a href="([^"]+)">([^<]+)<\/a><\/h3>/g)].map((m) => [m[1], m[2]]);
+  assert.deepEqual(titles, [[`/layiheler/${made[2].slug}/`, 'Üçüncü kart layihəsi'], [`/layiheler/${made[0].slug}/`, 'Birinci kart layihəsi'], [`/layiheler/${made[3].slug}/`, 'Dördüncü kart layihəsi']]);
+  assert.ok(home.includes('<p class="res"><b>Nəticə:</b> Üçüncü obyekt istismara verildi.</p>'));
+  assert.ok(!home.includes('Dünya Bankı</span><h3>'), 'hand-written cards are replaced');
+  const en = (await html(c, '/en/')).text;
+  assert.ok(en.includes(`<h3><a href="/en/projects/${made[2].slug}/">Üçüncü card project</a></h3>`));
+  assert.ok(en.includes('<p class="res"><b>Result:</b> Üçüncü handed over.</p>'));
+  const page = (await admin.get('/api/pages/page?path=index.html')).data.item;
+  assert.equal(page.featured, true);
+  assert.ok(!page.blocks.some((b) => b.original === 'Enerji sektoru üzrə Yol Xəritəsi'), 'card texts are not page blocks');
+  // hidden projects drop out; without pictured projects the hand-written cards come back
+  for (const p of made) assert.equal((await admin.del(`/api/projects/${p.id}`)).status, 200);
+  home = (await html(c, '/')).text;
+  assert.ok(home.includes('<span class="tag">Dünya Bankı</span><h3>Azərbaycanda elektrik və qaz şəbəkələrinin tədqiqi</h3>'));
+});
+
 test('a project made in the panel: list, own page in 3 languages, sitemap, hide', async () => {
   const c = new Client(T.base, '10.30.2.1');
   const up = await admin.req('POST', '/api/media', { form: fileForm({ folder: 'Layihələr' }, [['file', 'ayirici.png', PNG, 'image/png']]) });

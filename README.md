@@ -95,6 +95,7 @@ Faylda mətn proqramçı tərəfindən dəyişdirilsə, köhnə dəyişiklik sad
   səhifədəki 11 layihə panelə köçürülür (siyahı bayt-bayt eyni qalır). Əsas şəkli, qalereyası,
   göstəriciləri və ya bir neçə abzaslı təsviri olan layihənin öz səhifəsi olur (fayl yaradılmır, birbaşa verilir).
 - **Komanda:** `<!--@team-->` (Haqqımızda, 3 dil) — aktiv əməkdaş yoxdursa heç nə göstərilmir.
+- **Ana səhifədə «Seçilmiş layihələr»:** `<!--@featured-->` … `<!--/@featured-->` (3 dil) — şəkli olan, «Saytda göstər» işarəli ilk 3 layihə, «Layihələr» bölməsindəki sıra ilə; belə layihə yoxdursa HTML-dəki kartlar qalır.
 - **İcazələr:** `pages.view`, `pages.edit` (Super Admin hamısı; yeniləmədə «Layihələr»ə icazəsi olan rollara bir dəfə verilir).
 - **Header/footer:** komponent faylları (`site-templates/partials/`) dəyişmir; panel açarı `partials/header.az.html` və s. Menyu keçidi «link» bloku (mətn, ünvan, gizli), menyunun sonuna əlavələr «links» bloku. Ünvan yalnız sayt yolu, `https://`, `mailto:`, `tel:` ola bilər.
 - **Baza:** miqrasiya v5 (`page_blocks`, `page_block_history`, `projects.filter_key/tag_style`) və v6 (`page_blocks.kind`-ə `link`/`links`), hər birindən əvvəl avtomatik nüsxə.
