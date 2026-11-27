@@ -209,7 +209,10 @@ test('no broken internal links or assets on any page', async () => {
     const { html } = await page(urlOf(rel));
     const refs = [...html.matchAll(/\s(?:href|src)="(\/[^"#?]*)(?:[?#][^"]*)?"/g), ...html.matchAll(/\ssrcset="([^"]+)"/g)]
       .flatMap((m) => (m[0].includes('srcset') ? m[1].split(',').map((x) => x.trim().split(/\s+/)[0]) : [m[1]]))
-      .filter((u) => u.startsWith('/') && !u.startsWith('//'));
+      .filter((u) => u.startsWith('/') && !u.startsWith('//'))
+      // a hand-written page may point to a news item written in the panel (e.g. Academy -> PPM training);
+      // those pages come from the live database, not from this test's one
+      .filter((u) => !/^\/(xeberler|en\/news|ru\/news)\/[a-z0-9-]+\/$/.test(u) || /^\/xeberler\/(azerbaycan|bmt|iea)-/.test(u) || /^\/(en|ru)\/news\/(azerbaijan|un|iea)-/.test(u));
     for (const u of refs) {
       if (!seen.has(u)) {
         let r = await visitor.get(u);

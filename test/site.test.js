@@ -270,3 +270,17 @@ test('news: links to the social media posts are shown under the text, foreign si
   assert.match(read(`en/news/${n.slug_en}/index.html`), /This news on social media/);
   assert.ok(!read('xeberler/iea-enerji-semereliliyi-cop29/index.html').includes('art-social'), 'items without links have no block');
 });
+
+test('news: pictures of the "Qalereya" field become a photo slider under the text', async () => {
+  const ids = [];
+  for (const name of ['a.png', 'b.png']) {
+    const up = await admin.req('POST', '/api/media', { form: fileForm({ folder: 'Xəbərlər' }, [['file', name, PNG, 'image/png']]) });
+    assert.equal(up.status, 201, JSON.stringify(up.data));
+    ids.push((up.data.items ? up.data.items[0] : up.data.item).id);
+  }
+  const n = (await admin.post('/api/news', { title: 'Qalereyalı xəbər', content: 'Mətn.', status: 'published', gallery: ids, i18n: { en: { title: 'News with a gallery', content: 'Text.' } } })).data.item;
+  await publish();
+  const az = read(`xeberler/${n.slug}/index.html`);
+  assert.match(az, /<p>Mətn\.<\/p>\n {8}<h2>Fotolar<\/h2>\n {8}<div class="slider"><div class="slides"><figure><img src="\/media\/[a-f0-9]{32}\.png" alt="" loading="lazy"><\/figure><figure>/);
+  assert.match(read(`en/news/${n.slug_en}/index.html`), /<h2>Photos<\/h2>/);
+});
