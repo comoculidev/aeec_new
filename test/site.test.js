@@ -251,3 +251,22 @@ test('news: imported website pages, publishing in 3 languages, removal, safety',
   // viewers may look at the status but not trigger publication
   assert.equal((await new Client(T.base, '10.9.6.1').post('/api/site/publish')).status, 401);
 });
+
+test('news: links to the social media posts are shown under the text, foreign sites are refused', async () => {
+  const bad = await admin.post('/api/news', { title: 'Saxta link', content: 'Mətn.', social_linkedin: 'https://evil.example.com/posts/1' });
+  assert.equal(bad.status, 422, JSON.stringify(bad.data));
+  const n = (await admin.post('/api/news', {
+    title: 'Sosial linkli xəbər', content: 'Mətn.', status: 'published',
+    social_linkedin: 'https://www.linkedin.com/posts/aeec_test-activity-1', social_instagram: 'https://www.instagram.com/p/ABC123/',
+    i18n: { en: { title: 'News with social links', content: 'Text.' } },
+  })).data.item;
+  assert.equal(n.social_facebook, '');
+  await publish(); // (an earlier test leaves a hand-written page the panel refuses to overwrite - not this item)
+  const az = read(`xeberler/${n.slug}/index.html`);
+  assert.match(az, /<div class="art-social"><h2 class="art-social-h">Bu xəbər sosial şəbəkələrdə<\/h2>/);
+  assert.match(az, /<a class="soc" href="https:\/\/www\.linkedin\.com\/posts\/aeec_test-activity-1" target="_blank" rel="noopener noreferrer">/);
+  assert.match(az, /Instagram<\/a><\/div><\/div>\n {6}<p class="art-foot">/);
+  assert.ok(!az.includes('>Facebook</a>'), 'an empty link is not shown');
+  assert.match(read(`en/news/${n.slug_en}/index.html`), /This news on social media/);
+  assert.ok(!read('xeberler/iea-enerji-semereliliyi-cop29/index.html').includes('art-social'), 'items without links have no block');
+});

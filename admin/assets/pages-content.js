@@ -87,6 +87,10 @@ async function newsForm(view, id) {
         { name: 'gallery', label: 'Qalereya', type: 'gallery', full: true, itemsKey: 'gallery_items' }] },
       { title: 'İngilis və rus səhifələrinin ünvanı', sub: 'Boş qalsa, tərcümə başlığından avtomatik yaranır', fields: [
         { name: 'slug_en', label: 'EN: /en/news/…/', mono: true, max: 120 }, { name: 'slug_ru', label: 'RU: /ru/news/…/', mono: true, max: 120 }] },
+      { title: 'Sosial şəbəkə paylaşımları', sub: 'Bu xəbər sosial şəbəkədə də paylaşılıbsa, paylaşımın linkini yazın — saytda xəbərin altında düymə kimi görünür', fields: [
+        { name: 'social_linkedin', label: 'LinkedIn paylaşımı', mono: true, full: true, max: 300, placeholder: 'https://www.linkedin.com/posts/…' },
+        { name: 'social_facebook', label: 'Facebook paylaşımı', mono: true, full: true, max: 300, placeholder: 'https://www.facebook.com/…' },
+        { name: 'social_instagram', label: 'Instagram paylaşımı', mono: true, full: true, max: 300, placeholder: 'https://www.instagram.com/p/…' }] },
       seoSection,
       { title: 'Dərc', col: 'side', fields: [{ name: 'status', label: 'Status', type: 'select', options: opts(NEWS_STATUS) }, { name: 'published_at', label: 'Dərc tarixi', type: 'datetime', help: 'Boş qalsa, dərc edilən an yazılır. Gələcək tarix seçilsə, xəbər həmin vaxt saytda görünür.' },
         { name: 'is_featured', label: 'Seçilmiş xəbər (önə çıxar)', type: 'checkbox' }, { name: 'category', label: 'Kateqoriya', i18n: true, list: meta.categories, max: 80 }, { name: 'tags', label: 'Teqlər', type: 'tags' },

@@ -367,6 +367,13 @@ main:focus{outline:none}
 .sl-btn:disabled{opacity:.35;cursor:default}
 .sl-count{font-size:14.5px;color:var(--muted);min-width:48px;text-align:center;font-variant-numeric:tabular-nums}
 .art-foot{margin-top:40px;padding-top:28px;border-top:1px solid var(--line)}
+.art-social{margin-top:40px;padding-top:24px;border-top:1px solid var(--line)}
+.art-social-h{font-size:15px;font-weight:600;color:var(--muted);margin:0 0 12px}
+.soc-list{display:flex;flex-wrap:wrap;gap:10px}
+.soc{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:600;text-decoration:none}
+.soc:hover{border-color:var(--blue);color:var(--blue-ink)}
+.soc svg{flex:none}
+.art-social+.art-foot{margin-top:28px;border-top:0;padding-top:0}
 .art-more{max-width:820px;margin-top:56px}
 .art-more h2{font-size:22px;margin-bottom:14px}
 .art-more a{text-decoration:none;display:block;padding:4px 0}

@@ -336,6 +336,12 @@ INSERT INTO page_blocks_v6 SELECT * FROM page_blocks;
 DROP TABLE page_blocks;
 ALTER TABLE page_blocks_v6 RENAME TO page_blocks;
 `,
+  // 7: a news item can point to its posts on LinkedIn / Facebook / Instagram (shown under the text).
+  `
+ALTER TABLE news ADD COLUMN social_linkedin TEXT NOT NULL DEFAULT '';
+ALTER TABLE news ADD COLUMN social_facebook TEXT NOT NULL DEFAULT '';
+ALTER TABLE news ADD COLUMN social_instagram TEXT NOT NULL DEFAULT '';
+`,
 ];
 
 // Before an existing database is changed, a full copy is written to data/backups/

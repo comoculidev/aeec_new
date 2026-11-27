@@ -32,6 +32,17 @@ const LIST_DIR = { az: 'xeberler', en: 'en/news', ru: 'ru/news' };
 const TPL_DIR = path.join(__dirname, '..', 'site-templates');
 const LABELS = JSON.parse(fs.readFileSync(path.join(TPL_DIR, 'labels.json'), 'utf8'));
 const EMPTY = { az: 'Hazırda dərc olunmuş xəbər yoxdur.', en: 'There are no news items yet.', ru: 'Новостей пока нет.' };
+// Links to the posts about this news item on social networks (panel: "Sosial şəbəkə paylaşımları").
+const SOCIAL_TITLE = { az: 'Bu xəbər sosial şəbəkələrdə', en: 'This news on social media', ru: 'Эта новость в соцсетях' };
+const SOCIAL = [['social_linkedin', 'LinkedIn', 'M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM9.5 9.5h3.8v1.6h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.1c0-1.22-.02-2.78-1.7-2.78-1.7 0-1.96 1.32-1.96 2.7V21h-4z'],
+  ['social_facebook', 'Facebook', 'M13.5 21v-7.5H16l.4-3H13.5V8.6c0-.87.25-1.46 1.5-1.46h1.6V4.46A21 21 0 0 0 14.27 4.3c-2.3 0-3.87 1.4-3.87 3.98v2.22H8v3h2.4V21z'],
+  ['social_instagram', 'Instagram', 'M12 7.3a4.7 4.7 0 1 0 0 9.4 4.7 4.7 0 0 0 0-9.4zm0 7.7a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm6-7.9a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0zM12 4.6c2.4 0 2.7 0 3.6.05 2.45.11 3.6 1.27 3.7 3.7.05.95.05 1.23.05 3.65s0 2.7-.05 3.65c-.11 2.42-1.24 3.59-3.7 3.7-.95.04-1.23.05-3.6.05s-2.7 0-3.65-.05c-2.47-.11-3.6-1.28-3.7-3.7C4.6 14.7 4.6 14.4 4.6 12s0-2.7.05-3.65c.11-2.43 1.26-3.59 3.7-3.7C9.3 4.6 9.6 4.6 12 4.6zM12 3c-2.44 0-2.75 0-3.71.05-3.27.15-5.09 1.96-5.24 5.24C3 9.25 3 9.56 3 12s0 2.75.05 3.71c.15 3.27 1.96 5.09 5.24 5.24.96.04 1.27.05 3.71.05s2.75 0 3.71-.05c3.26-.15 5.1-1.96 5.24-5.24.04-.96.05-1.27.05-3.71s0-2.75-.05-3.71c-.15-3.26-1.96-5.09-5.24-5.24C14.75 3 14.44 3 12 3z']];
+function socialBlock(row, l) {
+  const links = SOCIAL.filter(([col]) => /^https:\/\//.test(row[col] || '')).map(([col, name, d]) =>
+    `<a class="soc" href="${escHtml(row[col])}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>${name}</a>`);
+  if (!links.length) return '';
+  return `      <div class="art-social"><h2 class="art-social-h">${escHtml(SOCIAL_TITLE[l])}</h2><div class="soc-list">${links.join('')}</div></div>\n`;
+}
 const MANAGED_ROOTS = ['xeberler/', 'en/news/', 'ru/news/', 'assets/img/cms/'];
 const SLUG_RX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SITE_IMAGE_RX = /^\/assets\/img\/[A-Za-z0-9._-]{1,100}\.(?:jpe?g|png|webp)$/;
@@ -156,7 +167,7 @@ function buildPages() {
         ...v, seo_title: t.seo_title, description: t.description, title: t.title, self_abs: base + t.url, alternates: alternates.join('\n'),
         og_image: it.img ? base + it.img.src : `${base}/assets/img/og-image.jpg`, og_w: it.img ? it.img.width : 1200, og_h: it.img ? it.img.height : 630, og_alt: alt,
         href_az: href.az, href_en: href.en, href_ru: href.ru,
-        picture: picture(it.img, 'art-img', alt, ' fetchpriority="high"'), body, more: others,
+        picture: picture(it.img, 'art-img', alt, ' fetchpriority="high"'), body, more: others, social: socialBlock(it.row, l),
       });
       if (!it.img) html = html.replace(/\n *\n( *<div class="art-body">)/, '\n$1');
       if (!others) html = html.replace(/\n *<aside class="art-more"[^\n]*<\/aside>/, '');
