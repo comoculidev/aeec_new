@@ -377,6 +377,8 @@ a.ntf:hover{background:var(--surface-2)}
 .md textarea.in{border:0;border-radius:0;min-height:180px}
 .md textarea.in:focus{outline-offset:-2px}
 .md-preview{padding:14px 16px;min-height:180px}
+.md-preview figure{margin:12px 0}.md-preview figure img{max-width:100%;height:auto;border-radius:8px;display:block}.md-preview figcaption{font-size:13px;color:var(--ink-2);margin-top:6px}
+.md-preview .md-slider{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.md-preview .md-slider figure{flex:0 0 85%;margin:0;scroll-snap-align:start}
 .prose{font-size:15px;line-height:1.65;max-width:72ch;overflow-wrap:anywhere}
 .prose h2{font-size:20px;margin:18px 0 8px}.prose h3{font-size:17px;margin:16px 0 6px}.prose h4{font-size:15px;margin:14px 0 6px}
 .prose p{margin:0 0 12px}.prose ul,.prose ol{margin:0 0 12px;padding-left:22px}

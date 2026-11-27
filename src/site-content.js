@@ -450,18 +450,39 @@ function history(rel, id) {
 const pj = (s, d) => { try { const x = JSON.parse(s || ''); return x ?? d; } catch { return d; } };
 const slugKey = (s) => String(s || '').toLowerCase().replace(/[əƏ]/g, 'e').replace(/[ıI]/g, 'i').replace(/[öÖ]/g, 'o').replace(/[üÜ]/g, 'u').replace(/[çÇ]/g, 'c').replace(/[şŞ]/g, 's').replace(/[ğĞ]/g, 'g')
   .normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'diger';
+slugKey.full = (s) => String(s || '').toLowerCase().replace(/[əƏ]/g, 'e').replace(/[ıI]/g, 'i').replace(/[öÖ]/g, 'o').replace(/[üÜ]/g, 'u').replace(/[çÇ]/g, 'c').replace(/[şŞ]/g, 's').replace(/[ğĞ]/g, 'g')
+  .normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80).replace(/-+$/, '');
 const firstPara = (s) => String(s || '').split(/\n\s*\n/)[0].replace(/[*_`#>]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim();
+// Address of a project page per language: Azerbaijani = the panel slug; English and Russian = a latin
+// slug made from the English name (so /en/projects/ shows English words), unless two projects would
+// get the same one - then the panel slug is used.
+function projectSlugs() {
+  let rows;
+  try { rows = all('SELECT id, slug, i18n FROM projects'); } catch { return new Map(); }
+  const en = rows.map((r) => { const t = pj(r.i18n, {}); return [r, String(slugKey.full((t.en && t.en.name) || '') || '')]; });
+  const taken = new Map();
+  for (const [r, s] of en) if (s) taken.set(s, (taken.get(s) || 0) + 1);
+  const azSlugs = new Set(rows.map((r) => r.slug));
+  const out = new Map();
+  for (const [r, s] of en) {
+    const ok = s && taken.get(s) === 1 && (!azSlugs.has(s) || s === r.slug);
+    out.set(r.id, { az: r.slug, en: ok ? s : r.slug, ru: ok ? s : r.slug });
+  }
+  return out;
+}
 function projectsFor(lang) {
   let rows;
   try { rows = all("SELECT * FROM projects WHERE is_active = 1 AND status <> 'archived' ORDER BY sort_order ASC, id ASC"); } catch { return []; }
+  const slugs = projectSlugs();
   return rows.map((r) => {
     const t = localize({ ...r, stats: pj(r.stats, []), i18n: r.i18n }, lang);
+    const sl = slugs.get(r.id) || { az: r.slug, en: r.slug, ru: r.slug };
     const gallery = pj(r.gallery, []);
     const stats = (Array.isArray(t.stats) ? t.stats : []).filter((x) => x && (x.label || x.value));
     const paras = String(t.description || '').split(/\n\s*\n/).filter((x) => x.trim()).length;
     const hasPage = !!(r.main_media_id || gallery.length || stats.length || paras > 1);
     const label = t.client || t.sector || t.project_type || '';
-    return { row: r, t, gallery, stats, label, key: r.filter_key || slugKey(r.client || r.sector || r.project_type), hasPage, url: `/${PROJ_DIR[lang]}/${r.slug}/` };
+    return { row: r, t, gallery, stats, label, key: r.filter_key || slugKey(r.client || r.sector || r.project_type), hasPage, slugs: sl, slug: sl[lang], url: `/${PROJ_DIR[lang]}/${sl[lang]}/` };
   });
 }
 function filterLabels() {
@@ -507,13 +528,18 @@ function projectsSection(lang, indent) {
 
 // A project page, built like the news pages (same header, footer, styles).
 function projectPage(lang, slug) {
-  const p = projectsFor(lang).find((x) => x.row.slug === slug && x.hasPage);
-  if (!p) return null;
+  const all_ = projectsFor(lang);
+  const p = all_.find((x) => x.slug === slug && x.hasPage);
+  if (!p) {
+    // an older address of the page (e.g. /en/projects/<Azerbaijani slug>/) -> its current one
+    const old = all_.find((x) => x.hasPage && (x.row.slug === slug || x.slugs.en === slug));
+    return old ? { redirect: old.url } : null;
+  }
   const t = p.t;
   const base = config.siteUrl;
   const l = L[lang];
   const href = {};
-  for (const x of LANGS) href[x] = `/${PROJ_DIR[x]}/${p.row.slug}/`;
+  for (const x of LANGS) href[x] = `/${PROJ_DIR[x]}/${p.slugs[x]}/`;
   const main = mediaFile(p.row.main_media_id);
   const gal = p.gallery.map(mediaFile).filter(Boolean);
   const facts = [[l.client, t.client], [l.location, t.location], [l.sector, t.sector], [l.type, t.project_type],
@@ -607,8 +633,8 @@ function sitemapWithProjects(xml) {
   const add = pages.map((p) => {
     const day = String(p.row.updated_at || '').slice(0, 10);
     const lines = LANGS.map((l) => [
-      '  <url>', `    <loc>${escHtml(`${base}/${PROJ_DIR[l]}/${p.row.slug}/`)}</loc>`, `    <lastmod>${day}</lastmod>`,
-      ...LANGS.map((x) => `    <xhtml:link rel="alternate" hreflang="${x}" href="${escHtml(`${base}/${PROJ_DIR[x]}/${p.row.slug}/`)}"/>`),
+      '  <url>', `    <loc>${escHtml(`${base}/${PROJ_DIR[l]}/${p.slugs[l]}/`)}</loc>`, `    <lastmod>${day}</lastmod>`,
+      ...LANGS.map((x) => `    <xhtml:link rel="alternate" hreflang="${x}" href="${escHtml(`${base}/${PROJ_DIR[x]}/${p.slugs[x]}/`)}"/>`),
       `    <xhtml:link rel="alternate" hreflang="x-default" href="${escHtml(`${base}/${PROJ_DIR.az}/${p.row.slug}/`)}"/>`, '  </url>'].join('\n'));
     return lines.join('\n') + '\n';
   }).join('');

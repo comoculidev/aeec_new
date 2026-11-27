@@ -4,6 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const config = require('./config');
+const WWW_HOST = (() => { try { return 'www.' + new URL(config.siteUrl).hostname; } catch { return ''; } })();
 
 class HttpError extends Error {
   constructor(status, message, extra = {}) {
@@ -144,6 +145,12 @@ function createApp() {
         if ((req.url || '').length > 4096) throw err(414, 'URL çox uzundur');
         let url;
         try { url = new URL(req.url, 'http://local'); } catch { throw err(400, 'URL düzgün deyil'); }
+        // www.aeec.az is the same site: send visitors (and search engines) to the one main address
+        if ((req.method === 'GET' || req.method === 'HEAD') && String(req.headers.host || '').toLowerCase().split(':')[0] === WWW_HOST) {
+          res.writeHead(301, { Location: config.siteUrl + url.pathname + url.search, 'Cache-Control': 'max-age=86400' });
+          res.end();
+          return;
+        }
         let pathname;
         try { pathname = decodeURIComponent(url.pathname); } catch { throw err(400, 'URL düzgün deyil'); }
         if (pathname.includes('\0') || pathname.includes('..') || pathname.includes('\\')) throw err(400, 'URL düzgün deyil');
@@ -174,11 +181,18 @@ function createApp() {
         if (status >= 500) console.error(`[error] ${req.method} ${String(req.url).split('?')[0]}`, e);
         if (e.headers) for (const [k, v] of Object.entries(e.headers)) res.setHeader(k, v);
         if (!req.complete) {
-          res.setHeader('Connection', 'close');
-          // A body of moderate size is read to the end and thrown away, so the client receives the answer
-          // (e.g. 413) instead of a reset connection; anything bigger is cut off once the answer is sent.
+          // A body of moderate size is read to the end (and thrown away) before answering, so the client
+          // receives the answer (e.g. 413) instead of a reset connection; anything bigger is cut off.
           const declared = parseInt(req.headers['content-length'] || '0', 10);
-          if (declared > 0 && declared <= 4 * 1024 * 1024) req.resume(); else res.on('finish', () => req.destroy());
+          if (declared > 0 && declared <= 4 * 1024 * 1024) {
+            req.resume();
+            await new Promise((done) => {
+              const t = setTimeout(done, 10000);
+              const fin = () => { clearTimeout(t); done(); };
+              req.once('end', fin); req.once('close', fin); req.once('error', fin);
+            });
+          }
+          if (!req.complete) { res.setHeader('Connection', 'close'); res.on('finish', () => req.destroy()); }
         }
         const body = JSON.stringify({ error: { code: e instanceof HttpError ? e.code : 'server_error', message: status >= 500 ? 'Daxili xəta baş verdi' : e.message, fields: e.fields } });
         res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });

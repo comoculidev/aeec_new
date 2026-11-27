@@ -178,10 +178,21 @@ export function renderMarkdown(md) {
     if ((m = /^[-*] +(.+)$/.exec(t))) { fp(); fq(); if (!list || list.tag !== 'ul') { fl(); list = { tag: 'ul', items: [] }; } list.items.push(m[1]); continue; }
     if ((m = /^\d{1,3}[.)] +(.+)$/.exec(t))) { fp(); fq(); if (!list || list.tag !== 'ol') { fl(); list = { tag: 'ol', items: [] }; } list.items.push(m[1]); continue; }
     if ((m = /^> ?(.*)$/.exec(t))) { fp(); fl(); quote.push(m[1]); continue; }
+    if ((m = /^!\[([^\]\n]{0,300})\]\(([^)\s]{1,1100})\)$/.exec(t))) {
+      const u = safeUrl(m[2], true);
+      if (u) { flush(); out.push(`<figure><img src="${esc(u)}" alt="${esc(m[1])}">${m[1] ? `<figcaption>${esc(m[1])}</figcaption>` : ''}</figure>`); continue; }
+    }
     fl(); fq(); para.push(line);
   }
   flush();
-  return raw(out.join('\n'));
+  // as on the website: two or more pictures in a row form one photo slider
+  const merged = [];
+  for (let i = 0; i < out.length;) {
+    let j = i;
+    while (j < out.length && out[j].startsWith('<figure>')) j++;
+    if (j - i >= 2) { merged.push('<div class="md-slider">' + out.slice(i, j).join('') + '</div>'); i = j; } else { merged.push(out[i]); i++; }
+  }
+  return raw(merged.join('\n'));
 }
 function wireEditor(box) {
   const ta = $('textarea', box), prev = $('.md-preview', box);
