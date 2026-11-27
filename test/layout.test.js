@@ -185,7 +185,7 @@ test('upgrade 1.3: links saved empty before 1.3 are filled once, other values ar
 test('system status reports the mail transport (was hidden by a comment)', async () => {
   const s = (await admin.get('/api/system')).data;
   assert.equal(s.mail_transport, 'smtp');
-  assert.equal(s.site_dir, T.siteDir);
+  assert.equal(fs.realpathSync(s.site_dir), fs.realpathSync(T.siteDir)); // macOS: /var is a link to /private/var
 });
 
 test('old addresses still redirect (the server does it; the old redirect files were removed)', async () => {
