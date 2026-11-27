@@ -9,6 +9,7 @@ const ALLOWED = [
   /<img src="[^"<>]*" alt="[^"<>]*" loading="lazy">/g,
   /<a href="[^"<>]*"(?: target="_blank" rel="noopener noreferrer")?>/g,
   /<\/?(?:p|strong|em|ul|ol|li|blockquote|figure|figcaption|h2|h3|h4)>/g, /<\/a>/g, /<br>/g, /<hr>/g,
+  /<div class="slider"><div class="slides">/g, /<\/div><\/div>/g,
 ];
 function assertSafe(html, source) {
   let rest = html;
@@ -55,6 +56,13 @@ test('random combinations of markup characters stay safe', () => {
     for (let k = 0; k < n; k++) s += parts[Math.floor(rnd() * parts.length)];
     assertSafe(render(s), s);
   }
+});
+
+test('two or more pictures in a row become one photo slider', () => {
+  const html = render('Mətn\n\n## Fotolar\n\n![](/media/a.jpg)\n\n![](/media/b.jpg)\n![İmza](/media/c.jpg)\n\nSon\n\n![](/media/d.jpg)');
+  assertSafe(html, 'slider');
+  assert.match(html, /<h2>Fotolar<\/h2>\n<div class="slider"><div class="slides"><figure><img src="\/media\/a.jpg" alt="" loading="lazy"><\/figure><figure><img src="\/media\/b.jpg"[^]*?<figcaption>İmza<\/figcaption><\/figure><\/div><\/div>\n<p>Son<\/p>/);
+  assert.match(html, /<p>Son<\/p>\n<figure><img src="\/media\/d.jpg" alt="" loading="lazy"><\/figure>$/, 'a single picture stays a plain figure');
 });
 
 test('rendering time stays linear on hostile input', () => {
