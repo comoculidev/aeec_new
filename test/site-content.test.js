@@ -115,6 +115,29 @@ test('a project made in the panel: list, own page in 3 languages, sitemap, hide'
   assert.equal((await c.get('/layiheler/yoxdur-bele-layihe/')).status, 404);
 });
 
+test('a new hero picture also replaces the old preload; a project title is not branded twice', async () => {
+  const c = new Client(T.base, '10.30.2.9');
+  const d = (await admin.get('/api/pages/page?path=index.html')).data.item;
+  const hero = d.blocks.find((b) => b.kind === 'image' && /substation/.test(b.original_src));
+  assert.ok(hero, 'hero picture block');
+  const up = await admin.req('POST', '/api/media', { form: fileForm({}, [['file', 'hero.png', PNG, 'image/png']]) });
+  assert.equal(up.status, 201, JSON.stringify(up.data));
+  assert.equal((await admin.put('/api/pages/block', { path: 'index.html', block: hero.id, media_id: up.data.item.id, alt: 'Yeni hero' })).status, 200);
+  let home = (await html(c, '/')).text;
+  assert.ok(!/<link rel="preload"[^>]*substation/.test(home), 'old hero is not preloaded');
+  assert.match(home, new RegExp(`<link rel="preload" as="image" href="${up.data.item.url}" fetchpriority="high">`));
+  assert.equal((await admin.del(`/api/pages/block?path=index.html&block=${hero.id}`)).status, 200);
+  home = (await html(c, '/')).text;
+  assert.match(home, /<link rel="preload" as="image" type="image\/webp" href="\/assets\/img\/substation.webp"/, 'restored');
+
+  const p = await admin.post('/api/projects', { name: 'Brend testi', sector: 'Enerji mühəndisliyi', status: 'completed', is_active: true, main_media_id: up.data.item.id,
+    description: 'Bir.\n\nİki.', seo_title: 'Brend testi | AEEC' });
+  assert.equal(p.status, 201, JSON.stringify(p.data));
+  const page = (await html(c, `/layiheler/${p.data.item.slug}/`)).text;
+  assert.match(page, /<title>Brend testi \| AEEC<\/title>/);
+  assert.equal((await admin.del(`/api/projects/${p.data.item.id}`)).status, 200);
+});
+
 test('pages: texts, SEO and images are changed from the panel, with history and restore', async () => {
   const c = new Client(T.base, '10.30.3.1');
   const pages = (await admin.get('/api/pages')).data.items;

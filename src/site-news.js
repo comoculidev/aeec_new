@@ -76,7 +76,7 @@ function itemsFor() {
       const firstPara = String(t.content).split(/\n\s*\n/)[0].replace(/[*_[\]()#>`]/g, '').replace(/\s+/g, ' ').trim();
       langs[l] = {
         slug, title: t.title, content: t.content, excerpt: t.excerpt || '',
-        seo_title: t.seo_title || t.title,
+        seo_title: String(t.seo_title || t.title).replace(/\s*[|—–-]\s*AEEC\s*$/i, '') || t.title, // the template adds " | AEEC"
         description: t.seo_description || t.excerpt || (firstPara.length > 160 ? firstPara.slice(0, 157).replace(/\s+\S*$/, '') + '…' : firstPara),
         category: t.category || (l === 'az' ? r.category : '') || '',
         alt: t.cover_alt || (l === 'az' ? r.cover_alt : '') || t.title,

@@ -210,14 +210,23 @@ function applyBlocks(html, rel) {
   if (!Object.keys(o).length) return html;
   let out = '';
   let pos = 0;
+  const swapped = [];
   for (const b of scan(html)) {
     const ov = o[b.id];
     if (!ov) continue;
     let repl = null;
     if (b.kind === 'text' && ov.kind === 'text') { repl = ov.value; out += html.slice(pos, b.start) + repl; pos = b.end; continue; }
-    if (b.kind === 'image' && ov.kind === 'image') { repl = imageMarkup(b, ov.value); if (repl) { out += html.slice(pos, b.start) + repl; pos = b.end; } }
+    if (b.kind === 'image' && ov.kind === 'image') { repl = imageMarkup(b, ov.value); if (repl) { out += html.slice(pos, b.start) + repl; pos = b.end; swapped.push([b.outer, (/\ssrc="([^"]*)"/.exec(repl) || [])[1]]); } }
   }
   out += html.slice(pos);
+  // A replaced picture must not leave the browser preloading the old file (e.g. the home hero).
+  for (const [oldMarkup, to] of swapped) {
+    if (!to) continue;
+    out = out.replace(/<link rel="preload" as="image"[^>]*>/g, (tag) => {
+      const href = (/\shref="([^"]*)"/.exec(tag) || [])[1];
+      return href && (oldMarkup.includes(`${href} `) || oldMarkup.includes(`"${href}"`)) ? `<link rel="preload" as="image" href="${to}" fetchpriority="high">` : tag;
+    });
+  }
   return applySeo(out, o);
 }
 
@@ -510,7 +519,7 @@ function projectPage(lang, slug) {
   const facts = [[l.client, t.client], [l.location, t.location], [l.sector, t.sector], [l.type, t.project_type],
     [l.period, [p.row.start_date, p.row.end_date].filter(Boolean).map((d) => d.split('-').reverse().join('.')).join(' – ')]].filter((x) => x[1]);
   const desc = t.seo_description || firstPara(t.description).slice(0, 300);
-  const title = t.seo_title || t.name;
+  const title = String(t.seo_title || t.name).replace(/\s*[|—–-]\s*AEEC\s*$/i, '') || t.name; // the suffix is added below
   const body = md.render(t.description || '').split('\n').filter((x) => x.trim()).map((x) => '        ' + x).join('\n');
   const parts = [];
   if (main) parts.push(`      <picture class="art-img"><img src="${escHtml(main.src)}" alt="${escHtml(main.alt || t.name)}" width="${main.width}" height="${main.height}" fetchpriority="high" decoding="async"></picture>`);
